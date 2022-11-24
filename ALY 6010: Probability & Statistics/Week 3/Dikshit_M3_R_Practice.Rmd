@@ -1,0 +1,153 @@
+---
+title: "R Practice – ALY 6010"
+subtitle: 'Module 3'
+author: "Abhilash Dikshit"
+date: "2022-11-21"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Language/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+![](NU.png)
+
+# Load libraries
+```{r}
+my_packages = c("plyr", "dplyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse", "gmodels", "moments", "skimr", "ggpubr", "knitr", "rstatix", "stats", "distributions3","corrplot")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```
+
+# Import the file *Food_Survey.csv* and show basic info after cleanup
+```{r}
+Food = read.csv("/Users/abidikshit/R_Language/Food_Survey.csv")
+Food = na.omit(Food)
+Food = select(Food, -1)
+print('Dataframe Info after cleanup:')
+cat("Number of Rows:", nrow(Food), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns:", ncol(Food), "\n") 
+cat("Blank cells count:", sum(!complete.cases(Food))) # Displaying Blank Cells Count for uncleaned data
+headTail(Food, top = 3, bottom = 3, ellipsis = F)
+```
+
+# Summary Of Dataset
+```{r}
+str(Food)
+```
+
+# Normality test for Nutrition
+```{r}
+shapiro.test(Food$Nutrition)
+```
+
+# T-TEST *Nutrition* 
+```{r}
+cat("Summary of variable Nutrition:", "\n") 
+summary(Food$Nutrition)
+
+options(scipen = 100)
+# Two-tailed test
+t.test(Food$Nutrition, mu = 2.5, alternative = "two.sided", conf.level = 0.95)
+# Alternative Hypothesis for H0:μ≤ 2.5 and HA:μ> 2.5
+t.test(Food$Nutrition, mu = 2.5, alternative = "greater", conf.level = 0.95)
+# Alternative Hypothesis for H0:μ≥ 2.5 and HA:μ< 2.5
+t.test(Food$Nutrition, mu = 2.5, alternative = "less", conf.level = 0.95)
+```
+
+# Box Plot for Nutrition Distribution (Jittered points to show individual observation)
+<!-- Added also jittered points to show individual observations. The big dot represents the mean point -->
+```{r}
+bxp = ggboxplot(Food$Nutrition, width = 0.5, add = c("mean", "jitter"), 
+                ylab = "Nutrition", xlab = F, ylim=c(0,6), fill = "skyblue", color = "darkgreen") +
+    labs(title = "Nutrition (Points are individual observation, Red Dot is mean point)") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    stat_summary(fun= mean, geom="point", shape=18, size=5, color="red")
+bxp
+```
+
+# Normality test for NDHMeals
+```{r}
+shapiro.test(Food$NDHMeals)
+```
+
+# T-TEST *NDHMeals* 
+```{r}
+cat("Summary of variable NDHMeals:", "\n") 
+summary(Food$NDHMeals)
+options(scipen = 100)
+# Two-tailed test
+t.test(Food$NDHMeals, mu = 5, alternative = "two.sided", conf.level = 0.95)
+# Alternative Hypothesis for H0:μ≤ 4 and HA:μ> 4
+t.test(Food$NDHMeals, mu = 5, alternative = "greater", conf.level = 0.95)
+# Alternative Hypothesis for H0:μ≥ 4 and HA:μ< 4
+t.test(Food$NDHMeals, mu = 5, alternative = "less", conf.level = 0.95)
+```
+
+# Box Plot for NDHMeals Distribution (Jittered points to show individual observation)
+<!-- Added also jittered points to show individual observations. The big dot represents the mean point -->
+```{r}
+bxp = ggboxplot(Food$NDHMeals, width = 0.5, add = c("mean", "jitter"), 
+                ylab = "Nutrition", xlab = F, ylim=c(0,11), fill = "skyblue", color = "darkgreen") +
+    labs(title = "NDHMeals (Points are individual observation, Red Dot is mean point)") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    stat_summary(fun= mean, geom="point", shape=18, size=5, color="red")
+bxp
+```
+
+# Nutrition: Theoretical calculation of p class From a t Distribution
+```{r}
+t = (mean(Food$Nutrition)-2.5)/(sd(Food$Nutrition)/sqrt(length(Food$Nutrition)))
+print("T Value:")
+t
+print("Two sided hypothesis test")
+2*pt(-abs(t),df=length(Food$Nutrition)-1)
+print("Left-tailed hypothesis test:")
+pt(t, df=136, lower.tail=T)
+print("Right-tailed hypothesis test:")
+pt(t, df=136, lower.tail=F)
+```
+
+# NDHMeals: Theoretical calculation of p class From a t Distribution
+```{r}
+t = (mean(Food$NDHMeals)-4)/(sd(Food$NDHMeals)/sqrt(length(Food$NDHMeals)))
+print("T Value:")
+t
+print("Two sided hypothesis test")
+2*pt(-abs(t),df=length(Food$NDHMeals)-1)
+print("Left-tailed hypothesis test:")
+pt(t, df=136, lower.tail=T)
+print("Right-tailed hypothesis test:")
+pt(t, df=136, lower.tail=F)
+```
+
+# Two sample T test on Food$DHBreakfast and Food$Boarding
+```{r}
+summary(Food$DHBreakfast)
+table("DHBreakfast" = Food$DHBreakfast, "Boarding" = Food$Boarding)
+options(scipen = 100)
+t.test(Food$DHBreakfast ~ Food$Boarding, 
+       mu=3.5, 
+       alternative = 'two.sided',
+       var.eq=T,
+       paired =F,
+       conf.level = 0.95)
+```
+
+# Box plot for Food$DHBreakfast ~ Food$Boarding
+```{r}
+ggplot(Food, aes(x = DHBreakfast, y = Boarding, fill=Boarding)) +  
+  geom_boxplot() + coord_flip() +
+  labs(title = "Box plot for Food$DHBreakfast ~ Food$Boarding") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+# References
+<div id="refs">@R-Career;@R-Action;@R-Cran;@R-Cran2;@R-Material1;@R-Material2;@R-Material3;@R-Material4</div>
+
+# Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Language/Dikshit_M3_R_Practice.Rmd', documentation = 0)), eval = FALSE}
+```
+

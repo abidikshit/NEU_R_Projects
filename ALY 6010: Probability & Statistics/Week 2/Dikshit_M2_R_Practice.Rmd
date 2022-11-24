@@ -1,0 +1,279 @@
+---
+title: "R Practice – ALY 6010"
+subtitle: 'Module 2 Week 2'
+author: "Abhilash Dikshit"
+date: "2022-11-13"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Language/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+![](NU.png)
+
+### Load libraries
+```{r}
+my_packages = c("plyr", "dplyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse", "gmodels", "crosstable", "moments", "skimr", "ggpubr", "pollster", "knitr", "bruceR", "png", "grid", "ggimage")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```
+
+### Import the file *Student_Mental_Health.csv* and show basic info
+```{r}
+stdnt_unclean = read.csv("/Users/abidikshit/R_Language/Student_Mental_Health.csv")
+print('Uncleaned Dataframe Info:')
+cat("Number of Rows:", nrow(stdnt_unclean), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns:", ncol(stdnt_unclean), "\n") 
+cat("Blank cells count:", sum(!complete.cases(stdnt_unclean))) # Displaying Blank Cells Count for uncleaned data
+headTail(stdnt_unclean, top = 3, bottom = 3, ellipsis = F)
+```
+
+### Dataframe Cleanup
+```{r}
+# Sort data frame with Ascending Age
+stdnt_sort= stdnt_unclean[order(stdnt_unclean$Age),]
+
+# Rename columns
+names(stdnt_sort)[names(stdnt_sort) == 'Timestamp'] = 'Date'
+names(stdnt_sort)[names(stdnt_sort) == 'Choose.your.gender'] = 'Gender'
+names(stdnt_sort)[names(stdnt_sort) == 'What.is.your.course.'] = 'Course'
+names(stdnt_sort)[names(stdnt_sort) == 'Your.current.year.of.Study'] = 'Current_Study_Year'
+names(stdnt_sort)[names(stdnt_sort) == 'What.is.your.CGPA.'] = 'CGPA'
+names(stdnt_sort)[names(stdnt_sort) == 'Marital.status'] = 'Marital_Status'
+names(stdnt_sort)[names(stdnt_sort) == 'Do.you.have.Depression.'] = 'Depression'
+names(stdnt_sort)[names(stdnt_sort) == 'Do.you.have.Anxiety.'] = 'Anxiety'
+names(stdnt_sort)[names(stdnt_sort) == 'Do.you.have.Panic.attack.'] = 'Panic_Attack'
+names(stdnt_sort)[names(stdnt_sort) == 'Did.you.seek.any.specialist.for.a.treatment.'] = 'Specialist_Treatment'
+
+# Removed Blank cells
+stdnt = na.omit(stdnt_sort)
+
+# Omitted regular expression with gsub() function  
+stdnt[5] = gsub("year 1","1",stdnt$Current_Study_Year)
+stdnt[5] = gsub("Year 1","1",stdnt$Current_Study_Year)
+stdnt[5] = gsub("year 2","2",stdnt$Current_Study_Year)
+stdnt[5] = gsub("Year 2","2",stdnt$Current_Study_Year)
+stdnt[5] = gsub("year 3","3",stdnt$Current_Study_Year)
+stdnt[5] = gsub("Year 3","3",stdnt$Current_Study_Year)
+stdnt[5] = gsub("year 4","4",stdnt$Current_Study_Year)
+
+print('Cleaned dataframe:')
+cat("Number of Rows:", nrow(stdnt), "\n")
+cat("Number of Columns:", ncol(stdnt), "\n")
+cat("Blank cells count in cleaned dataframe:", sum(!complete.cases(stdnt)), "\n") # Displaying blank cells count after removal
+
+# Changing Column 5 class from char to numeric
+stdnt$Current_Study_Year = as.numeric(stdnt$Current_Study_Year)
+
+headTail(stdnt, top = 3, bottom = 3, ellipsis = F) # Cleaned Dataframe
+```
+
+### Summary Of Dataset
+```{r}
+skim(stdnt)
+# summary(stdnt, digits = 1)
+str(stdnt)
+describe(stdnt)
+
+# Mean, Min, Max, STD of Gender
+stdnt %>%
+group_by(Gender)%>%
+summarise_at(vars(Age),list(Mean=mean, Min=min, Max=max,STD=sd))
+
+# Mean, Min, Max, STD of Marital_Status
+stdnt %>%
+group_by(Marital_Status)%>%
+summarise_at(vars(Current_Study_Year),list(Mean=mean, Min=min, Max=max,STD=sd))
+```
+
+### Health Analysis of Students
+```{r}
+p1= subset(stdnt, Panic_Attack == "Yes" & Depression == "Yes" & Anxiety == "Yes")
+p2= subset(stdnt, Panic_Attack == "No" & Depression == "No" & Anxiety == "No")
+s1= subset(stdnt, Specialist_Treatment == "Yes")
+c1= subset(stdnt, Course == "Engineering")
+select(p1, 2,3,7,8,9,10,11)
+select(p2, 2,3,7,8,9,10,11)
+select(s1, 2,3,8,9,10,11)
+select(c1, 2,4,8,9,10,11)
+```
+
+### 3 line table
+```{r}
+print_table(
+  stdnt, digits = 3, nsmalls = stdnt$Current_Study_Year, nspaces = 1, row.names = T, col.names = T,
+  title = "3 line table for Current Study Year", note = "", append = "", line = T, file = NULL,
+  file.align.head = "auto", file.align.text = "auto")
+```
+
+### Different Table Types
+```{r}
+# Courses for Each Year
+print("Courses Frequency Table for Each Year:")
+year_table= table(stdnt$Course, stdnt$Current_Study_Year) # Create frequency table
+year_table
+
+# Marital status And Age
+print("Frequency Table For Marital status And Age:")
+stdnt_freq= table(stdnt$Age, stdnt$Marital_Status) 
+ftable(stdnt_freq)
+
+# 3 Way-Cross Tablulation for for Depression and Anxiety'
+print("CrossTable for Depression and Anxiety':")
+CrossTable(stdnt$Depression, stdnt$Anxiety, dnn = c("Depression", "Anxiety"))
+```
+
+### 3-way crosstabs  using ggplot facets
+```{r}
+stdnt %>%
+  # filter for ages
+  filter(Age > 15) %>%
+  crosstab_3way(x = Gender, y = Specialist_Treatment, z = Marital_Status, weight = Current_Study_Year, 
+                format = "long") %>%
+  ggplot(aes(Specialist_Treatment, pct, fill = Marital_Status)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  facet_wrap(facets = vars(Gender)) +
+  labs("CrossTable for Depression, Anxiety and Panic_Attack", 
+       subtitle = "Students in Age > 15",caption = "Student Survey Analysis") +
+  theme(legend.position = "top")
+```
+
+### CGPA based on Age for the current year of study (Scatter Plot)
+```{r}
+img= readPNG("NuLogo.png")
+
+ggplot(stdnt, aes(x = Age, y = Current_Study_Year)) + geom_point(aes(color=CGPA)) +
+   labs(title = "Year of Study For Respective Age", subtitle = "Filtered By CGPA") + 
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) + scale_x_log10() +
+  annotation_custom(rasterGrob(img, width = unit(0.2,"npc"), height = unit(0.3,"npc")), -Inf, Inf, -Inf, Inf)
+```
+
+### Courses Provided (Scatter Plot)
+```{r}
+ggplot(stdnt, aes(x = Current_Study_Year, y = Course)) + 
+  geom_point(aes(color=Gender)) +
+  labs(title = "Courses Provided For Respective Years", subtitle = "Filtered By Gender") + 
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5))+
+  annotation_custom(rasterGrob(img, width = unit(0.2,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+```
+
+### Specialist Treatment For Depression, Anxiety, and Panic Attack Based on Age (Jittr Plot)
+```{r}
+# Specialist Treatment For Depression based on Age
+j1= ggplot(stdnt, aes(x=Age, y=Depression, color=Specialist_Treatment, shape=Specialist_Treatment)) +
+  geom_jitter(position=position_dodge(0.8), shape=17) + coord_flip() +
+  stat_summary(fun.data="mean_sdl", geom="crossbar", width=0.5) +
+  labs(title = "Treatment For Depression") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  annotation_custom(rasterGrob(img, width = unit(0.1,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+
+# Specialist Treatment For Anxiety based on Age (Mean)
+j2= ggplot(stdnt, aes(x=Age, y=Anxiety, color=Specialist_Treatment, shape=Specialist_Treatment)) +
+  geom_jitter(position=position_dodge(0.8), shape=17) + coord_flip() +
+  stat_summary(fun= mean, geom="point", shape=18, size=3, color="green") +
+  labs(title = "Treatment For Anxiety", subtitle = "Mean") + 
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5))+
+  annotation_custom(rasterGrob(img, width = unit(0.1,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+
+# Specialist Treatment For Panic Attack based on Age (Median)
+j3= ggplot(stdnt, aes(x=Age, y=Panic_Attack, color=Specialist_Treatment, shape=Specialist_Treatment)) +
+  geom_jitter(position=position_dodge(0.8), shape=17) + coord_flip() +
+  stat_summary(fun= median, geom="point", shape=18, size=3, color="green") +
+  labs(title = "Treatment For Panic Attack", subtitle = "Median") + 
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5))+
+  annotation_custom(rasterGrob(img, width = unit(0.1,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+
+# Specialist Treatment For Anxiety based on Age (Standard Deviatian)
+j4= ggplot(stdnt, aes(x=Age, y=Anxiety, color=Specialist_Treatment, shape=Specialist_Treatment)) +
+  geom_jitter(position=position_dodge(0.8), shape=17) + coord_flip() + 
+  stat_summary(fun.data=mean_sdl, geom="pointrange", color="red") + 
+  labs(title = "Treatment For Anxiety", subtitle = "Standard Deviation") + 
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5))+
+  annotation_custom(rasterGrob(img, width = unit(0.1,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+
+ggarrange(
+  j1, j2, j3, j4, common.legend = T, legend = "bottom")
+```
+
+### Sort Data with CGPA and find mean for Current_Study_Year
+```{r}
+cgpa_sort = stdnt[order(stdnt$CGPA),]
+top25cgpa= tail(cgpa_sort,25)
+cat("Mean value for Current study year for top 25 students:", mean(top25cgpa$Current_Study_Year),"\n")
+cat("Mean value for Age for top 25 students:",mean(top25cgpa$Age))
+```
+
+### Box plot for top 25 students based on multiple factors
+```{r}
+b1= ggplot(top25cgpa, mapping = aes(x = reorder(Course, Current_Study_Year), y = Current_Study_Year, fill = Gender)) +
+  geom_boxplot() + 
+  labs(x=NULL, y="Current Study Year", title = "Course Taken By Top 25 Students", 
+       subtitle = "Based on CGPA") +
+  geom_hline(yintercept = 2.28, linetype="dashed", color = "red", linewidth = 1) +
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) + coord_flip() +
+  annotation_custom(rasterGrob(img, width = unit(0.2,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+
+b2 = ggplot(top25cgpa, mapping = aes(x = reorder(Course, Age), y = Age, fill = Depression)) +
+  geom_boxplot()+ 
+  labs(x=NULL, y="Age", title = "Course Taken By Top 25 Students", 
+       subtitle = "Based on Depression") +
+  geom_hline(yintercept = 22.8, linetype="dashed", color = "red", linewidth = 1) +
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) + coord_flip() +
+  annotation_custom(rasterGrob(img, width = unit(0.2,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+
+b3= ggplot(top25cgpa, mapping = aes(x = reorder(Course, Age), y = Age, fill = Anxiety)) +
+  geom_boxplot()+ 
+  labs(x=NULL, y="Age", title = "Course Taken By Top 25 Students", 
+       subtitle = "Based on Anxiety") +
+  geom_hline(yintercept = 22.8, linetype="dashed", color = "red", linewidth = 1) +
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) + coord_flip() + 
+  annotation_custom(rasterGrob(img, width = unit(0.2,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+
+b4= ggplot(top25cgpa, mapping = aes(x = reorder(Course, Age), y = Age, fill = Panic_Attack)) +
+  geom_boxplot()+ 
+  labs(x=NULL, y="Age", title = "Course Taken By Top 25 Students", 
+       subtitle = "Based on Panic Attack") +
+  geom_hline(yintercept = 22.8, linetype="dashed", color = "red", linewidth = 1) +
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) + coord_flip() + 
+  annotation_custom(rasterGrob(img, width = unit(0.2,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+
+ggarrange(
+  b1, b2, b3, b4, nrow = 1, ncol = 1)
+```
+
+### Frequency of Students Age (abline)
+```{r}
+par(mfrow=c(1,2))
+hist(x = top25cgpa$Age, main = "Frequency of Top 25 Students Age" , xlab = "Age", ylim = c(0,15), col = "skyblue", labels = T)
+abline(v = mean(top25cgpa$Age), col="red", lwd=3, lty=2)
+hist(x = stdnt$Age, main = "Frequency of Total Students Age" , xlab = "Age", ylim = c(0,60), col = "skyblue", labels = T)
+abline(v = mean(stdnt$Age), col="red", lwd=3, lty=2)
+```
+
+### CGPA w.r.t Age plot
+```{r}
+cgpa_age = ggplot(stdnt, aes(Age)) + geom_density(aes(fill=CGPA), alpha=1/4)+
+    labs(title = "Density Plot of CGPA w.r.t Age")+
+  theme(plot.title = element_text(hjust = 0.5)) +
+  annotation_custom(rasterGrob(img, width = unit(0.2,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+cgpa_age
+```
+
+### Percentage of Students taken respective Courses
+```{r}
+course_comm= stdnt[which(stdnt$Current_Study_Year>0),]
+course_pie= plot_ly(course_comm, type='pie', labels = ~Course, values = ~Age, textposition = 'inside')
+course_pie= course_pie %>% layout(uniformtext=list(minsize=12, mode='hide'))
+course_pie= course_pie %>% layout(title= 'Percentage of Students taken respective Courses')
+course_pie
+```
+
+### References
+<div id="refs">@R-Material; @R-Career;@R-Tableu;@R-Action</div>
+
+### Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Language/Dikshit_M2_R_Practice.Rmd', documentation = 0)), eval = FALSE}
+```

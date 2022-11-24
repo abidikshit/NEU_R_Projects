@@ -1,0 +1,197 @@
+---
+title: "R Practice – ALY 6010"
+author: "Abhilash Dikshit"
+date: "2022-11-05"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Language/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+subtitle: 'Module 1 Week 1 '
+---
+### Load libraries
+```{r}
+my_packages = c("plyr", "dplyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse", "gmodels", "crosstable")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```
+
+### Import the file *gapminderDataFiveYear.csv* from github and show basic info
+```{r}
+country_raw =  read.csv("https://raw.githubusercontent.com/plotly/datasets/master/gapminderDataFiveYear.csv", stringsAsFactors = FALSE)
+cat("Number of Rows For Uncleaned Dataset:", nrow(country_raw), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns For Uncleaned Dataset:", ncol(country_raw), "\n") 
+cat("Blank cells count For Uncleaned Dataset:", sum(!complete.cases(country_raw))) # Displaying Blank Cells Count from the original data frame
+headTail(country_raw, top = 3, bottom = 3, ellipsis = F)
+```
+
+### Dataframe Cleanup
+```{r}
+# Sort dataframe with descending year
+country_sort= country_raw[order(-country_raw$year),]
+
+# Rename columns
+names(country_sort)[names(country_sort) == 'country'] = 'COUNTRY'
+names(country_sort)[names(country_sort) == 'year'] = 'YEAR'
+names(country_sort)[names(country_sort) == 'pop'] = 'POPULATION'
+names(country_sort)[names(country_sort) == 'continent'] = 'CONTINENT'
+names(country_sort)[names(country_sort) == 'lifeExp'] = 'LIFE_EXPECTANCY'
+names(country_sort)[names(country_sort) == 'gdpPercap'] = 'GDP_PER_CAPITA'
+
+# Omitted regular expression with gsub() function  
+country_sort$LIFE_EXPECTANCY = gsub("'[.]*","",as.integer(country_sort$LIFE_EXPECTANCY))
+country_sort$GDP_PER_CAPITA = gsub("'[.]*","",as.integer(country_sort$GDP_PER_CAPITA))
+
+# Changing column class type from character to integer
+country_sort$LIFE_EXPECTANCY = as.integer(country_sort$LIFE_EXPECTANCY)
+country_sort$GDP_PER_CAPITA = as.integer(country_sort$GDP_PER_CAPITA)
+
+# Added Percentage Column "LIFE_EXPECTANCY_PERCENTAGE"
+country = country_sort %>% mutate(LIFE_EXPECTANCY_PERCENTAGE = LIFE_EXPECTANCY/sum(LIFE_EXPECTANCY) *100)
+headTail(country, top = 3, bottom = 3, ellipsis = F)
+```
+
+### Summary Of Cleaned Dataset
+```{r}
+describe(country)
+summary(country, digits = 1)
+str(country)
+
+#Mean, Min, Max, STD of CONTINENT 
+country %>% 
+group_by(CONTINENT)%>%
+summarise_at(vars(LIFE_EXPECTANCY),list(Mean=mean, Min=min, Max=max,STD=sd))
+
+#Mean, Min, Max, STD of COUNTRY 
+country %>% 
+group_by(COUNTRY)%>%
+summarise_at(vars(GDP_PER_CAPITA),list(Mean=mean, Min=min, Max=max,STD=sd))
+```
+
+### Frequency Tables
+```{r}
+#Frequency Table
+continent_table = table(country$CONTINENT)    # Create frequency table
+continent_table
+continent_table_prop = continent_table / sum(continent_table) # Create proportion table
+continent_table_prop
+continent_table_perc = continent_table_prop * 100     # Create percentage table
+continent_table_perc
+continent_table_perc2 = paste0(round(continent_table_perc, 2), "%")   # Format percentages
+names(continent_table_perc2) = names(continent_table_perc)
+continent_table_perc2
+continent_table_cumsum = cumsum(continent_table)   # Create cumulative frequency table
+continent_table_cumsum
+```
+
+### 2-Way Cross Tabulation
+```{r}
+# 2-Way Cross Tabulation
+# country_asia= country[which(country$YEAR==2007 & country$CONTINENT=='Asia'),]
+# CrossTable(country_asia$COUNTRY, country_asia$YEAR)
+country_oceania = country[which(country$YEAR== 2007 & country$CONTINENT=='Oceania'),]
+CrossTable(country_oceania$COUNTRY, country_oceania$YEAR)
+```
+
+### Life Expectancy Of Each Continent
+```{r}
+ggplot(country, mapping = aes(x = reorder(CONTINENT, LIFE_EXPECTANCY), y = LIFE_EXPECTANCY, fill = CONTINENT)) +
+   geom_boxplot() + labs(x=NULL, y="LIFE EXPECTANCY", title = "Life Expectancy Of Each Continent") +
+    geom_hline(yintercept = 58.9689, linetype="dashed", color = "red", linewidth = 1) +
+    theme(plot.title = element_text(hjust = 0.5)) # mean(country$LIFE_EXPECTANCY= 58.9689
+```
+
+### Gdp per capita of Each Continent
+```{r}
+ggplot(country, mapping = aes(x = reorder(CONTINENT, GDP_PER_CAPITA), y = GDP_PER_CAPITA, fill = CONTINENT)) +
+  geom_boxplot() +
+  labs(x=NULL, y="GDP PER CAPITA", title = "Gdp_per_capita Of Each Continent") +
+  geom_hline(yintercept = 7214.837, linetype="dashed", color = "red", size = 1) +
+  theme(plot.title = element_text(hjust = 0.5)) # mean(country$GDP_PER_CAPITA)= 7214.837
+```
+
+### Density Plot of Life Expectancy For Each Continent
+```{r}
+ggplot(country, aes(LIFE_EXPECTANCY)) + geom_density(aes(fill=CONTINENT), alpha=1/4)+ 
+    labs(title = "Density Plot of Life Expectancy For Each Continent")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+#Top 10 countries with highest population based on latest year
+population_sort =country[order( -country[,2], -country[,3] ),]
+toptencountry = head(population_sort, 10)[1:3]
+#toptencountry
+
+toppop= plot_ly(toptencountry, x = ~COUNTRY, y = ~POPULATION)
+toppop= toppop %>% add_lines(name = ~"Population")
+toppop= toppop %>% layout(title= 'Highest Population Of Countries Based On Latest Year', plot_bgcolor = "#e5ecf6", showlegend = F)
+toppop
+```
+
+### Frequency Of Life Expectancy
+```{r}
+hist(x = country$LIFE_EXPECTANCY, main = "Frequency Of Life Expectancy", xlab = "Life Expectancy", xlim = c(20,90), ylim = c(0,300), col = "skyblue", labels = T)
+```
+
+### Population Of Countries in Europe In The Year 2007
+```{r}
+country_eu= country[which(country$YEAR==2007 & country$CONTINENT=='Europe' & country$POPULATION > 2.e6),]
+
+country_bar= plot_ly(country_eu, type='bar', x = ~COUNTRY, y = ~POPULATION, text = ~LIFE_EXPECTANCY, name="",
+               hovertemplate = paste('%{x}', '<br>lifeExp: %{text:.2s}<br>'),
+               texttemplate = '%{y:.2s}', textposition = 'outside')
+country_bar= country_bar %>% layout(uniformtext=list(minsize=8, mode='hide'), title= 'Population Of Countries In Europe (Year 2007)')
+country_bar
+```
+
+### Average life expectancy and GDP (not GDP per capita) for Asian countries for each year
+```{r}
+country %>%
+mutate (gdp=GDP_PER_CAPITA*POPULATION)%>%
+filter(CONTINENT== "Asia") %>%
+group_by(YEAR) %>%
+summarize (mean (LIFE_EXPECTANCY), mean (GDP_PER_CAPITA))
+
+ggplot(country, aes(x = GDP_PER_CAPITA, y = LIFE_EXPECTANCY)) + geom_point(aes(color=CONTINENT)) + scale_x_log10() + 
+   labs(title = "Average life expectancy and GDP for Asian countries for each year")
+```
+
+### Population Of Countries In Asia In The Year 2007
+```{r}
+country_asia= country[which(country$YEAR==2007 & country$CONTINENT=='Asia'),]
+country_pie= plot_ly(country_asia, type='pie', labels = ~COUNTRY, values = ~POPULATION, textposition = 'inside')
+country_pie= country_pie %>% layout(uniformtext=list(minsize=12, mode='hide'))
+country_pie= country_pie %>% layout(title= 'Population Of Countries In Asia (Year 2007)')
+country_pie
+```
+
+### Gdp Per Capita For Individual Countries
+```{r}
+country_scatter= plot_ly(country, x = ~COUNTRY, y = ~GDP_PER_CAPITA, type = 'scatter', mode = 'markers',
+        hoverinfo = 'text',
+        text = ~paste('</br> Continent: ', CONTINENT,
+                      '</br> Country: ', COUNTRY,
+                      '</br> Gdp per capita: ', GDP_PER_CAPITA))
+country_scatter =  country_scatter %>% layout(title= 'Gdp Per Capita For Individual Countries', plot_bgcolor = "#e5ecf6", showlegend = F)
+country_scatter
+```
+
+### Life Expectancy In Each Continent
+```{r}
+#create stacked bar chart for population based on life expectancy percentage
+continent_population = ggplot(country, aes(x=CONTINENT, y=POPULATION, fill=LIFE_EXPECTANCY)) + 
+  geom_bar(position='stack', stat='identity') + labs(title = "Life Expectancy Of Population In Each Continent") +
+  theme(plot.title = element_text(hjust = 0.5))
+continent_population
+```
+
+### References
+<div id="refs">@R-Git; @R-Material; @R-Career;@R-Tableu;@R-Action</div>
+
+### Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Language/Dikshit_ALY6010_M1_R_Practice.Rmd', documentation = 0)), eval = FALSE}
+```

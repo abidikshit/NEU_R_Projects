@@ -1,2 +1,10 @@
-# R_Projects
-R Language
+## R_Projects
+
+## Contributors:
+- Abhilash Dikshit 
+
+## Project Details
+R language
+
+## License
+[MIT-LICENSE.md](LICENSE.md)

@@ -1,0 +1,338 @@
+---
+title: 'ALY6000 Module 2 Project 2: Executive Summary Report 2'
+author: "Abhilash Dikshit"
+date: "2022-10-05"
+bibliography: bibliography.bib
+biblio-style: "apalike"
+link-citations: true
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+### 1. Print your name at the top of the script and load these libraries: *FSA, FSAdata, magrittr, dplyr, tidyr, plyr and tidyverse*
+```{r}
+print("Abhilash Dikshit")
+
+# install.packages("plyr")   # Import Libraries
+# install.packages("FSA")
+# install.packages("FSAdata")
+# install.packages("magrittr")
+# install.packages("dplyr")
+# install.packages("tidyr")
+# install.packages("tidyverse")
+# install.packages("psych")
+
+library(plyr)   # Load Libraries
+library(FSA)
+library(FSAdata)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(psych)
+```
+
+# 2. Print your name at the top of the script. Include the prefix: “Plotting Basics:”
+```{r}
+print("Plotting Basics: Abhilash Dikshit")
+```
+
+# 2. Import libraries including: plyr, FSA, FSAdata, magrittr, dplyr, plotrix, ggplot2, and moments
+```{r}
+#install.packages("plyr")
+#install.packages("FSA")
+#install.packages("FSAdata")
+#install.packages("magrittr")
+#install.packages("dplyr")
+#install.packages("plotrix")
+#install.packages("ggplot2")
+#install.packages("moments")
+#install.packages("tidyverse")
+
+library(plyr)
+library(FSA)
+library(FSAdata)
+library(magrittr)
+library(dplyr)
+library(plotrix)
+library(ggplot2)
+library(moments)
+library(tidyverse)
+```
+
+<!-- # Packages = c("plyr", "FSA", "FSAdata", "magrittr", "plotrix", "ggplot2", "moments", "tidyverse", "dplyr") -->
+<!-- # invisible(lapply(Packages, library, character.only = TRUE)) -->
+
+
+# 3. Load the BullTroutRML2 dataset
+```{r}
+BullTroutRML2_Data = read.csv("BullTroutRML2.csv")
+print(BullTroutRML2_Data)
+```
+
+# Plot the statistics of dataset BullTroutRML2
+```{r}
+summary(BullTroutRML2_Data)
+sd(BullTroutRML2_Data$age)
+sd(BullTroutRML2_Data$fl)
+var(BullTroutRML2_Data$age)
+var(BullTroutRML2_Data$fl)
+skewness(BullTroutRML2_Data$age)
+skewness(BullTroutRML2_Data$fl)
+kurtosis(BullTroutRML2_Data$age)
+kurtosis(BullTroutRML2_Data$fl)
+boxplot(BullTroutRML2_Data$age)$out
+boxplot(BullTroutRML2_Data$fl)$out
+```
+
+# 4. Print first and last 3 records from BullTroutRML2 dataset
+```{r}
+first3data= head(BullTroutRML2_Data, 3)
+print(first3data)
+
+last3data= tail(BullTroutRML2_Data, 3)
+print(last3data)
+```
+
+# 5. Filter out all records except those from Harrison Lake
+```{r}
+filtered_data = filter(BullTroutRML2_Data, lake != "Harrison")
+print(filtered_data)
+```
+
+# 6. Display the first and last 3 records from the filtered dataset
+```{r}
+first3filterdata = head(filtered_data, 3)
+first3filterdata
+
+last3filterdata = tail(filtered_data, 3)
+last3filterdata
+```
+
+# 7. Display the structure of the filtered dataset
+```{r}
+structure_data = str(filtered_data)
+```
+
+# 8. Display the summary of filtered dataset and save it as <t>
+```{r}
+t = summary(filtered_data)
+t
+```
+
+# 9. Scatterplot for “fl” (x variable) and “age” (y variable)
+Specifications:
+
+• Limit of x axis is (0,500)
+
+• Limit of y axis is (0,15)
+
+• Title of graph is “Plot 1: Harrison Lake Trout"
+
+• Y axis label is “Age (yrs)”
+
+• X axis label is “Fork Length (mm)”
+
+• Use a small filled circle for the plotted data points
+
+```{r}
+x = BullTroutRML2_Data$fl
+y = BullTroutRML2_Data$age
+plot(x, y, main = "Plot 1: Harrison Lake Trout",
+     xlim = c(0,500), ylim = c(0,15),
+     xlab = "Fork Length (mm)", ylab = "Age (yrs)", pch = 16)
+```
+
+# 10. Plot an “Age” histogram 
+Specifications:
+
+• Y axis label is “Frequency”
+
+• X axis label is “Age (yrs)”
+
+• Title of the histogram is “Plot 2: Harrison Fish Age Distribution” 
+
+• The color of the frequency plots is “cadetblue”
+
+• The color of the Title is “cadetblue”
+
+```{r}
+hist(BullTroutRML2_Data$age, main = "Plot 2: Harrison Fish Age Distribution", 
+     col.main= "cadetblue", xlab = "Age (yrs)", ylab = "Frequency", 
+     col="cadetblue")
+```
+
+# 11. Create an overdense plot
+Specifications:
+
+• Limit of x axis is (0,500)
+
+• Limit of y axis is (0,15)
+
+• Title of graph is “Plot 3: Harrison Density Shaded by Era”
+
+• Y axis label is “Age (yrs)”
+
+• X axis label is “Fork Length (mm)”
+
+• Use a small filled circle for the plotted data points
+
+• Include two levels of shading for the “black” data points.
+<!-- # smoothScatter(BullTroutRML2_Data$fl, BullTroutRML2_Data$age, xlim = c (0,500), -->
+<!-- #               ylim = c(0,15), xlab = "Fork Length (mm)", ylab = "Age (yrs)", -->
+<!-- #               main= "Plot 3: Harrison Density Shaded by Era", pch = 16) -->
+```{r}
+overdense_plot = ggplot(BullTroutRML2_Data,aes(x=fl,y=age,colour=era)) + 
+  geom_point(pch= 16) + ggtitle("Plot3: Harrison Density Shaded by Era") +
+  theme(plot.title = element_text(hjust = 0.5)) + xlab("Fork length(mm)") + 
+  ylab("Age(yrs)") + xlim(0,500) + ylim(0,15) + 
+  scale_color_manual(values=c("blue","green")) + labs(color="Era")
+
+suppressWarnings(print(overdense_plot))
+```
+
+# 12. Create a new object called “tmp” that includes the first 3 and last 3 records of the whole data set.
+```{r}
+tmp = rbind(head(BullTroutRML2_Data, 3), tail(BullTroutRML2_Data, 3))
+tmp
+```
+
+# 13. Display the “era” column in the new “tmp” object
+```{r}
+tmp[ , c(4), drop= F]
+```
+
+# 14. Create the pchs vector with argument values for + and x.
+```{r}
+pch = c("+", "x")
+pch
+# Create a cols vector with two elements “red” and “gray60”
+cols= c("red", "gray60")
+cols
+```
+
+# 15. Convert the tmp object values to numeric values. Then create a numeric numEra object from tmp$era object
+```{r}
+class(tmp$era) # Get class of era columns
+tmp_era = factor(tmp$era)
+numEra = as.numeric(tmp_era)
+numEra
+class(numEra) # Get classes
+```
+
+# 16. Associate the cols vector with the tmp era values
+```{r}
+# tmp_era = cols
+# tmp_era
+col_vector = c(cols, numEra)
+col_vector
+```
+
+# 17. Create plot of “Age (yrs)” (y variable) versus “Fork Length (mm)” (x variable)
+Specifications:
+
+• Limit of x axis is (0,500)
+
+• Limit of y axis is (0,15)
+
+• Title of graph is “Plot 4: Symbol & Color by Era”
+
+• X axis label is “Age (yrs)”
+
+• Y axis label is “Fork Length (mm)”
+
+• Set pch equal to pchs era values
+
+• Set col equal to cols era values
+
+```{r}
+plot(x=BullTroutRML2_Data$fl, y=BullTroutRML2_Data$age, xlim = c(0,500), 
+    ylim= c(0,15), pch = ifelse(BullTroutRML2_Data$era=="1977-80",
+    pch[1], pch[2]), col = ifelse(BullTroutRML2_Data$era=="1977-80",
+    cols[1], cols[2]), xlab = "Age (yrs)", ylab = "Fork Length (mm)", 
+    main = "Plot 4: Symbol & Color by Era")
+```
+
+# 18. Plot regression line of the previous plot with a dashed line with width 2 and color “cadetblue”
+```{r}
+plot(x=BullTroutRML2_Data$fl, y=BullTroutRML2_Data$age, xlim = c(0,500), 
+    ylim= c(0,15), pch = ifelse(BullTroutRML2_Data$era=="1977-80",
+    pch[1], pch[2]), col = ifelse(BullTroutRML2_Data$era=="1977-80",
+    cols[1], cols[2]), xlab = "Age (yrs)", ylab = "Fork Length (mm)", 
+    main = "Plot 5: Regression Overlay")
+abline(lm(BullTroutRML2_Data$age~BullTroutRML2_Data$fl, 
+          data = BullTroutRML2_Data), col="cadetblue", lwd = 2, lty =2)
+```
+
+# 19. Place legend of levels by era with pchs symbols in the top left of the plot
+Specifications:
+
+• Inset of 0.05
+
+• No box around the legend
+
+• Font size: 75% of nominal
+```{r}
+a_plot =plot(x=BullTroutRML2_Data$fl, y=BullTroutRML2_Data$age, xlim = c(0,500), 
+    ylim= c(0,15), pch = ifelse(BullTroutRML2_Data$era=="1977-80",
+    pch[1], pch[2]), col = ifelse(BullTroutRML2_Data$era=="1977-80",
+    cols[1], cols[2]), xlab = "Age (yrs)", ylab = "Fork Length (mm)", 
+    main = "Plot 6: Legend Overlay")
+abline(lm(BullTroutRML2_Data$age~BullTroutRML2_Data$fl, 
+          data = BullTroutRML2_Data), col="Blue")
+legend("topleft", inset = 0.05, c("1977-80","1977-01"), pch = c("+","x"), 
+       col = c("red","black"), bty="n", cex=0.75)
+
+
+
+```
+
+# Three Aspects Of Assignments
+
+A. As per below mentioned ```Summary```, we got ```mean, median, first and third quartiles, min and max element```;```Mean``` of the dataset ```BullTroutRML2_Data(age)``` is ```5.771``` and ```Mean``` of dataset ```BullTroutRML2_Data(forklength)``` is ```326.1```;```Median``` of the dataset ```BullTroutRML2_Data(age)``` is ```6```and ```Median``` of the dataset ```BullTroutRML2_Data(forklength)``` is ```352.5```.
+
+```Skewness of age``` is ```2.92``` and of ```forklength``` is ```112.20```;```Standard Deviation, Variance and Kurtosis``` values are  represented in the screenshots below. From Skewness, we can identify the graph is ```Asymmetric``` below the median or below the peak of the graph in both ```age``` and ```forklength```.
+
+![An image caption Source: Summary](/Users/abidikshit/ScreenShot2.png)
+
+![An image caption Source: In Depth Analysis](/Users/abidikshit/ScreenShot1.png)
+
+The ```outliers``` help in understanding the number of points outside the range of dataset given and can be calculated using ```boxplot graph``` which represents the ```minimum, maximum, mean and median``` of the dataset. Below, the boxplot of the ```age``` is calculated as we can see there are no points outside the minimum and maximum i.e., there are no points outside the range of the dataset and hence the outliers for the given dataset of age is ```Zero```.
+
+![An image caption Source: Outliers](/Users/abidikshit/ScreenShot3.png)
+
+The ```outliers of the dataset of forklength(fl)``` is calculated below where we can observe that there are outliers in the forklength which means there are points which goes beyond the range of the dataset i.e., outliers goes beyond ```500``` and lying within ```15``` which are the ranges as shown in the figure below.
+
+![An image caption Source: In Depth Analysis](/Users/abidikshit/ScreenShot4.png)
+
+B. Representing the Data Visualization of the ```Scatter plot, Histogram, Regression line with legend and Boxplot```. The ```scatter plot``` represents the dependency nature with an uphill graph which means as the forklength ```increases```, the age also ```increases``` and vice versa. Highest peak can be seen at ```(450,14)```. The next plot shows the same result as the scatter plot which shows there is a direct relation between the ```age and the frequency```.
+
+In ```regression plot```, the slop of the line is the important equation and depicts how the variables are dependent on each other. In regression line we can see the peak point touching the line which is at ```(450,14)```. The legend represents the data in a clear way to understand the graph. 
+
+The ```box plot``` of the forklength represents the data to understand the graph in a better way. The box plot of the forklength represents the outliers of the graph where the points lie ```outside``` the range of the forklength.
+
+C. By observing the Data Visualization of all the ```graphs and plots```, we can conclude that all the minimal and maximum number and the maximum peak occurs same place with the exact magnitude in all the graphs and plots.
+
+In the box plot of age, we observed there is ```no outliers``` since all the points lie in the range of age unlike forklength which has ```two outliers```.
+
+
+![An image caption Source: Plot 1: Harrison Lake Trout](/Users/abidikshit/Plot1.png)
+
+![An image caption Source: Plot 2: Harrison Fish Age Distribution](/Users/abidikshit/Plot2.png)
+
+![An image caption Source: Plot 3: Harrison Density Shaded by Era](/Users/abidikshit/Plot3.png)
+
+![An image caption Source: Plot 4: Symbol & Color by Era](/Users/abidikshit/Plot4.png)
+
+![An image caption Source: Regression Overlay](/Users/abidikshit/Plot5.png)
+
+![An image caption Source: Legend Oveerlay](/Users/abidikshit/Plot6.png)
+
+# References
+<div id="refs">@R-Elegnant; @R-Visual;@R-Markdown;@R-Action;@R-Statistics</div>
+
+# Appendix
+```{r code=readLines(knitr::purl('~/Dikshit_M2_Project2.Rmd', documentation = 0)), eval = FALSE}
+```

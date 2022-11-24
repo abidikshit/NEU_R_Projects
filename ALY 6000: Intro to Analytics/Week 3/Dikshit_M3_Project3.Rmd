@@ -1,0 +1,317 @@
+---
+title: 'ALY6000 Module 3 Project3'
+author: "Abhilash Dikshit"
+date: "2022-10-12"
+bibliography: /Users/abidikshit/R_Language/bibliography.bib
+biblio-style: "apalike"
+link-citations: true
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+### 1. Print your name at the top of the script and load these libraries: *FSA, FSAdata, magrittr, dplyr, tidyr, plyr and tidyverse*
+```{r}
+print("Abhilash Dikshit")
+
+# install.packages("plyr")   # Import Libraries
+# install.packages("FSA")
+# install.packages("FSAdata")
+# install.packages("magrittr")
+# install.packages("dplyr")
+# install.packages("tidyr")
+# install.packages("tidyverse")
+# install.packages("psych")
+
+library(plyr)   # Load Libraries
+library(FSA)
+library(FSAdata)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(psych)
+```
+
+### 2. Import the *inchBio.csv* and name the table *bio*
+```{r}
+bio = read.csv("/Users/abidikshit/R_Language/inchBio.csv", sep=",",header=TRUE)
+```
+
+### Plot the statistics of *bio* Datasetƒ
+```{r}
+summary(bio)
+```
+
+### 3. Display the head, tail and structure of *bio*
+```{r}
+headTail(bio, ellipsis = F) 
+bio_str = str(bio)
+```
+
+### 4. Create an object *counts* that counts and lists all the species records
+```{r}
+counts = dplyr::count(bio,species)
+counts
+```
+
+### 5. Display just the 8 levels (names) of the species
+```{r}
+unique(bio[c("species")])
+```
+
+### 6. Create a *tmp* object that displays the different species and the number of record of each species in the dataset. Include this information in your report.
+```{r}
+tmp = table(bio['species'])
+tmp
+```
+
+### 7. Create a subset *tmp2* of just the species variable and display the first five records
+```{r}
+tmp2 = subset(bio, select = 'species')
+head(tmp2, 5)
+```
+
+### 8. Create a table *w* of the species variable. Display the *class* of w
+```{r}
+w = table(bio$species)
+w
+class(w)
+```
+
+### 9. Convert *w* to a data frame named *t* and display the results
+```{r}
+t = data.frame(w)
+t
+```
+
+### 10. Extract and display the frequency values from the *t* data frame
+```{r}
+freq_data = t[,2]
+freq_data
+```
+
+### 11. Create a table named *cSpec* from the bio species attribute (variable) and confirm that you created a table which displays the number of species in the dataset *bio*
+```{r}
+cSpec = table(bio$species)
+cSpec
+class(cSpec)
+```
+
+### 12. Create a table named *cSpecPct* that displays the species and percentage of records for each species. Confirm you created a table class.
+```{r}
+len_species = length(matrix(bio$species))
+print(paste("Length of the species: ", len_species))
+```
+
+```{r}
+cSpecPct = table(bio$species)/len_species
+cSpecPct
+class(cSpecPct)
+```
+
+### 13. Convert the table *cSpecPct* to a data frame named *u* and confirm that *u* is a data frame
+```{r}
+u = data.frame(cSpecPct)
+u
+class(u)
+```
+
+### 14. Create a barplot of *cSpec* with the following:
+Specifications:
+
+• Title: Fish Count
+
+• Y axis is labeled “COUNTS”
+
+• Color the bars Light Green
+
+• Rotate Y axis to be horizontal
+
+• Set the X axis font magnification to 60% of nominal
+```{r}
+barplot(cSpec, main="Fish Count", ylab = "Counts", col = "lightgreen", las = 2, , cex.names = 0.6)
+```
+
+### 15. Create a barplot of *cSpecPct* with the following:
+Specifications:
+
+• Yaxislimitsof 0 to 4
+
+• Y axis label color of Light Blue
+
+• Title of “Fish Relative Frequency”
+```{r}
+barplot(cSpecPct, ylim=c(0.00,0.40), col="lightblue", las=2, main="Fish Relative Frequency", ylab="%", cex.names=0.6)
+```
+
+### 16. Rearrange the *u* cSpecPct data frame in descending order of relative frequency. Save the rearranged data frame as the object *d*
+```{r}
+d = u[with(u,order(-Freq)),]
+d
+```
+
+### 17. Rename the *d* columns Var 1 to Species, and Freq to RelFreq
+```{r}
+names(d)[names(d) == "Var1"] = "Species"
+names(d)[names(d) == "Freq"] = "RelFreq"
+d
+```
+
+### 18. Add new variables to *d* and call them *cumfreq, counts, and cumcounts*
+```{r}
+d = mutate(d, cumfreq=cumsum(RelFreq), counts=RelFreq*len_species, cumcounts=cumsum(counts))
+d
+```
+
+### 19. Create a parameter variable *def_par* to store parameter variables
+```{r}
+def_par = par()
+par(mar=c(6,5,3.5,5))
+```
+
+### 20. Create a barplot *pc* with the following:
+Specifications:
+
+• d$counts of width 1, spacing of .15
+
+• no boarder
+
+• Axes: F
+
+• Yaxis limit 0,3.05*max
+
+• d$counts na.rm is true
+
+• y label is Cummulative Counts
+
+• scale x axis to 70%
+
+• names.arg: d$Species
+
+• Title of the barplot is “Species Pareto”
+
+• las: 2
+```{r}
+pc = barplot(d$counts, width=1, space=0.15, border=NA, axes=F, 
+             ylim=c(0, 3.05*max(d$counts, na.rm=T)), ylab="Cumulative Counts", 
+             cex.names=0.7, names.arg=d$Species, main="Species Pareto", las=2)
+```
+
+### 21. Add a cumulative counts line to the *pc* plot with the following:
+Specifications:
+
+• Spec line type is b
+
+• Scale plotting text at 70%
+
+• Data values are solid circles with color cyan4
+```{r}
+pc = barplot(d$counts, width=1, space=0.15, border=NA, axes=F, 
+             ylim=c(0, 3.05*max(d$counts, na.rm=T)), ylab="Cumulative Counts", 
+             cex.names=0.7, names.arg=d$Species, main="Species Pareto", las=2)
+lines(pc, d$cumcounts, type = "b", cex = 0.7, pch = 19, col="cyan4")
+```
+
+### 22. Place a grey box around the pareto plot 
+(hint: https://www.statmethods.net/advgraphs/parameters.html)
+```{r}
+pc = barplot(d$counts, width=1, space=0.15, border=NA, axes=F, 
+             ylim=c(0, 3.05*max(d$counts, na.rm=T)), ylab="Cumulative Counts", 
+             cex.names=0.6, names.arg=d$Species, main="Species Pareto", las=2)
+lines(pc, d$cumcounts, type = "b", cex = 0.7, pch = 19, col="cyan4", box(col = "grey62"))
+```
+
+### 23. Add a left side axis with the following:
+Specifications:
+
+• Horizontal values at tick marks at cumcounts on side 2
+
+• Tickmark color of grey62
+
+• Color of axis is grey62
+
+• Axis scaled to 80% of normal
+
+(hint: https://www.statmethods.net/advgraphs/axes.html) 
+```{r}
+pc = barplot(d$counts, width=1, space=0.15, border=NA, axes=F, 
+             ylim=c(0, 3.05*max(d$counts, na.rm=T)), ylab="Cumulative Counts", 
+             cex.names=0.7, names.arg=d$Species, main="Species Pareto", las=2)
+lines(pc, d$cumcounts, type = "b", cex = 0.7, pch = 19, col="cyan4", 
+      box(col = "grey62"), axis(side = 2, at = c(0, d$cumcounts), las = 1,
+          col.axis = "grey62", col = "grey62", cex.axis = 0.8) )
+```
+
+### 24. Add axis details on right side of box with the following:
+Specifications:
+
+• Spec: Side 4
+
+• Tickmarks at cumcounts with labels from 0 to cumfreq with %
+
+• Axis color of cyan5 and label color of cyan4 
+
+• Axis font scaled to 80% of nominal
+```{r}
+pc = barplot(d$counts, width=1, space=0.15, border=NA, axes=F, 
+             ylim=c(0, 3.05*max(d$counts, na.rm=T)), ylab="Cumulative Counts", 
+             cex.names=0.7, names.arg=d$Species, main="Species Pareto", las=2)
+lines(pc, d$cumcounts, type = "b", cex = 0.7, pch = 19, col="cyan4", 
+      box(col = "grey62"), axis(side = 2, at = c(0, d$cumcounts), las = 1,
+          col.axis = "grey62", col = "grey62", cex.axis = 0.8) )
+axis(side = 4, at = c(0, d$cumcounts), labels = paste(c(0, round(d$cumfreq * 100)) ,"%",sep=""), 
+     las = 1, col.axis = "cyan4", col = "cyan4", cex.axis = 0.8)
+```
+
+### 25. Display the finished Species Pareto Plot (without the star watermarks). Have your last name on the plot
+```{r}
+pc = barplot(d$counts, width=1, space=0.15, border=NA, axes=F, 
+             ylim=c(0, 3.05*max(d$counts, na.rm=T)), ylab="Cumulative Counts", 
+             cex.names=0.7, names.arg=d$Species, main="Dikshit: Species Pareto", las=2)
+lines(pc, d$cumcounts, type = "b", cex = 0.7, pch = 19, col="cyan4", 
+      box(col = "grey62"), axis(side = 2, at = c(0, d$cumcounts), las = 1,
+          col.axis = "grey62", col = "grey62", cex.axis = 0.8) )
+axis(side = 4, at = c(0, d$cumcounts), labels = paste(c(0, round(d$cumfreq*100)),"%",sep=""), 
+     las = 1, col.axis = "cyan4", col = "cyan4", cex.axis = 0.8)
+```
+
+## Three Aspects Of Assignments
+
+A. Based on the ```inchBio``` Data analysis, out of ```676 observation``` in ```8 species``` there was a clear dominance of two species i.e., ```Largmouth Bass``` and ```Bluegill``` which contributes to ```66%``` of the research data whereas ```Pumpkin seed``` and ```Tadpole Madtom``` hardly contributed ```2%``` of the research data.
+
+![An image caption Source: Species length](/Users/abidikshit/R_Language/specieslength.png)
+
+![An image caption Source: Species Count](/Users/abidikshit/R_Language/countspecies.png)
+
+![An image caption Source: cSpecPct](/Users/abidikshit/R_Language/cSpecPct.png)
+
+To facilitate an in-depth study of the data set, several subsets were created in order to analyze the ``Real frequency, cumulative frequency, counts and cumulative counts``` of the species data.
+
+Largmouth Bass and Bluegill species have high survival rate because of the huge count as compared to the rest. Also, the frequency of reproduction of the other species w.r.t there survival rate is much more less, specially the ones with smaller length and width.
+
+![An image caption Source: All Species Data](/Users/abidikshit/R_Language/AllData.png)
+
+B. The advantages of a bar plot and a cumulative distribution graph are combined in the Pareto graphic that follows. We can see that two species predominate among the samples used in this investigation and the pareto graphic prompts us to give us a clear picture about a number of fresh lines of inquiry such as: 
+
+1. Smaller pumpkin seed or tadpole species are a major source of food for bluegill and largemouth bass as compared to the rest.
+2. There are environmental factors that prevent some species from flourishing in an environment where they share space with large species. For instance, smaller fish gets there food from the leftover of the species which are larger in length and mostly surround the area where they pas through to get an easy food.
+3. As it was necessary to conduct a more in-depth analysis of species length and weight in order to determine if the species are developing poorly and, as a result, pose a reproductive risk or a risk of increased morbidity and mortality, we conducted several analysis to provide a better picture of the scenario.
+
+![An image caption Source: Fish Count](/Users/abidikshit/R_Language/FishCount.png)
+
+![An image caption Source: Cumulative Counts Species Pareto Final](/Users/abidikshit/R_Language/CumulativeCountsSpeciesParetoFinal.png)
+
+C. By looking at the Data Visualization of all of the "graphs and plots", the highest and lowest survival rate depends highly on the size of the specific species as well as on the scale of reproduction and the region where they breed and stay.
+
+We may get the conclusion that the two prominent species in the below plots, the largemouth bass and bluegill, are the main predators and feed on the other species. All species eat "pumpkin seed" and "tadpole madtom," which makes it difficult for them to survive.
+
+![An image caption Source: Fish Relative Frequency](/Users/abidikshit/R_Language/FishRelativeFrequency.png)
+
+### References
+<div id="refs">@R-Elegnant; @R-Visual;@R-Markdown;@R-Action;@R-Statistics</div>
+
+### Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Language/Dikshit_M3_Project3.Rmd', documentation = 0)), eval = FALSE}
+```

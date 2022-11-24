@@ -1,0 +1,163 @@
+---
+title: "R Practice – ALY 6010"
+subtitle: 'Module 1 Week 2: Final Milestone'
+author: "Abhilash Dikshit"
+date: "2022-11-10"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Language/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+
+### Load libraries
+```{r}
+my_packages = c("plyr", "dplyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse", "gmodels", "crosstable", "moments", "scales", "skimr", "ggmap")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```
+
+### Import the file *AB_NYC_2019.csv* and show basic info
+```{r}
+airbnb_unclean = read.csv("/Users/abidikshit/R_Language/AB_NYC_2019.csv")
+print('Uncleaned Dataframe Info:')
+cat("Number of Rows:", nrow(airbnb_unclean), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns:", ncol(airbnb_unclean), "\n") 
+cat("Blank cells count:", sum(!complete.cases(airbnb_unclean))) # Displaying Blank Cells Count for uncleaned data
+headTail(airbnb_unclean, top = 3, bottom = 3, ellipsis = F)
+```
+
+### Dataframe Cleanup
+```{r}
+# Sort data frame with descending price
+airbnb_sort= airbnb_unclean[order(-airbnb_unclean$price),]
+
+# Drop columns
+airbnb_keep = airbnb_sort[ -c(1:4) ]
+
+# Rename columns
+names(airbnb_keep)[names(airbnb_keep) == 'neighbourhood_group'] = 'NEIGHBOURHOOD_GROUP'
+names(airbnb_keep)[names(airbnb_keep) == 'neighbourhood'] = 'NEIGHBOURHOOD'
+names(airbnb_keep)[names(airbnb_keep) == 'latitude'] = 'LATITUDE'
+names(airbnb_keep)[names(airbnb_keep) == 'longitude'] = 'LONGITUDE'
+names(airbnb_keep)[names(airbnb_keep) == 'room_type'] = 'ROOM_TYPE'
+names(airbnb_keep)[names(airbnb_keep) == 'price'] = 'PRICE'
+names(airbnb_keep)[names(airbnb_keep) == 'minimum_nights'] = 'MIN_NIGHT'
+names(airbnb_keep)[names(airbnb_keep) == 'number_of_reviews'] = 'REVIEW_COUNT'
+names(airbnb_keep)[names(airbnb_keep) == 'last_review'] = 'LAST_REVIEW'
+names(airbnb_keep)[names(airbnb_keep) == 'reviews_per_month'] = 'REVIEW_MONTHLY'
+names(airbnb_keep)[names(airbnb_keep) == 'calculated_host_listings_count'] = 'HOST_LISTING_COUNT'
+names(airbnb_keep)[names(airbnb_keep) == 'availability_365'] = 'AVAILABILITY_YEARLY'
+
+# Removed Blank cells
+airbnb_modified = na.omit(airbnb_keep)
+
+print('Cleaned dataframe:')
+airbnb = airbnb_modified[19558:12223,] # Remove the top 40 % and bottom 25%
+cat("Number of Rows:", nrow(airbnb), "\n")
+cat("Number of Columns:", ncol(airbnb), "\n")
+cat("Blank cells count in cleaned dataframe:", sum(!complete.cases(airbnb)), "\n") # Displaying blank cells count after removal
+headTail(airbnb, top = 3, bottom = 3, ellipsis = F) # Cleaned Dataframe
+```
+
+### Summary Of Cleaned Dataset
+```{r}
+skim(airbnb_unclean)
+skim(airbnb)
+summary(airbnb, digits = 1)
+str(airbnb)
+
+# Mean, Min, Max, STD of NEIGHBOURHOOD_GROUP 
+airbnb %>% 
+group_by(NEIGHBOURHOOD_GROUP)%>%
+summarise_at(vars(PRICE),list(Mean=mean, Min=min, Max=max,STD=sd))
+
+# Mean, Min, Max, STD of ROOM_TYPE 
+airbnb %>%
+group_by(ROOM_TYPE)%>%
+summarise_at(vars(REVIEW_COUNT),list(Mean=mean, Min=min, Max=max,STD=sd))
+```
+
+### Average Price For Each Room Type
+```{r}
+# Uncleaned: Data Average Price For Each Room Type 
+airbnb_unclean_mean = aggregate(price ~ room_type, airbnb_unclean, mean)
+airbnb_unclean_mean
+
+airbnb_pie_unclean = ggplot(airbnb_unclean_mean, aes(x= room_type , y= price, fill=room_type)) + geom_bar(stat="identity", width=1) +
+    coord_polar("y", start=0)+scale_fill_brewer(palette="Dark2") +
+  labs(title = "Average Price For Each Room Type", subtitle = "Uncleaned Data", fill = "") +
+  geom_text(aes(label = round(price, digits = 1)))
+airbnb_pie_unclean
+
+# Cleaned: Data Average Price For Each Room Type
+airbnb_room_mean = aggregate(PRICE ~ ROOM_TYPE, airbnb, mean)
+airbnb_room_mean
+airbnb_pie = ggplot(airbnb_room_mean, aes(x= ROOM_TYPE, y= PRICE, fill=ROOM_TYPE)) + geom_bar(stat="identity", width=1) +
+    coord_polar("y", start=0) + scale_fill_brewer(palette="Dark2") +
+  labs(title = "Average Price For Each Room Type", subtitle = "Cleaned Data", fill = "") +
+  geom_text(aes(label = round(PRICE, digits = 1)))
+airbnb_pie
+```
+
+### Prices Across Different Neighbourhood Groups
+```{r}
+ggplot(data = airbnb, aes(x=NEIGHBOURHOOD_GROUP, y=PRICE, fill=NEIGHBOURHOOD_GROUP))+ geom_boxplot() + scale_fill_manual(values=c("#999999", "#E69F00","#56B4E9","darkblue","darkgreen")) + labs(title="Price Across Different Neighbourhood Groups", x ="Neighbourhood Group", y = "Prices (USD)")
+```
+
+### Prices For Different Room Types
+```{r}
+ggplot(airbnb, mapping = aes(x = reorder(ROOM_TYPE, PRICE), y = PRICE, fill = ROOM_TYPE)) +
+   geom_boxplot() + labs(x='Room Type', y="Prices (USD)", title = "Prices For Different Room Types") +
+    geom_hline(yintercept = 126.0319, linetype="dashed", color = "red", linewidth = 1) +
+    theme(plot.title = element_text(hjust = 0.5)) # mean(airbnb$PRICE)= 126.0319
+```
+
+### Distribution Of Room Types In New York City
+```{r}
+ggplot(data = airbnb) + geom_bar(mapping = aes(x=ROOM_TYPE, fill=ROOM_TYPE), position="dodge") + scale_fill_manual(values=c("darkblue", "#E69F00","#56B4E9")) + labs(title="Distribution Of Room Types In New York City", x ="Room Type", y = "Count")
+```
+
+### Airbnbs Count For Neighbourhood In New York City
+```{r}
+ggplot(data = airbnb) + geom_bar(mapping = aes(x=NEIGHBOURHOOD_GROUP, fill=NEIGHBOURHOOD_GROUP), position="dodge") +
+  scale_fill_manual(values=c("#999999", "#E69F00","#56B4E9","darkblue","darkgreen")) + labs(title="Airbnbs Count For Neighbourhood In New York City", x ="Neighbourhood group", y = "Count")
+```
+
+### Number of Reviews Density Plot Using Latitude and Longitude For Specific Room Types
+```{r}
+qmplot(data = airbnb_unclean, longitude, latitude, geom = "point", color = number_of_reviews, main = "Uncleaned Data: Density of no. of reviews as per Latitude & Longitude") + facet_wrap(~ room_type)
+qmplot(data = airbnb, LONGITUDE, LATITUDE, geom = "point", color = REVIEW_COUNT, main = "Cleaned Data: Density of no. of reviews as per Latitude & Longitude") + facet_wrap(~ ROOM_TYPE)
+```
+
+### Reviews In Specific Years Based On Room Types By Adding Extra Column *REVIEW_YEAR*
+```{r}
+airbnb$REVIEW_YEAR = substr(airbnb$LAST_REVIEW,1,4) # Added Column "REVIEW_YEAR"
+ggplot(data = airbnb) + geom_bar(mapping = aes(x=REVIEW_YEAR, fill=ROOM_TYPE), position="dodge") + labs(title="Reviews Of Room Types From 2011-2019", x ="Review Year", y = "Count")
+```
+
+### Frequency Tables
+```{r}
+#Frequency Table
+airbnb_table = table(airbnb$NEIGHBOURHOOD_GROUP)    # Create frequency table
+airbnb_table
+airbnb_table_prop = airbnb_table / sum(airbnb_table) # Create proportion table
+airbnb_table_prop
+airbnb_table_perc = airbnb_table_prop * 100     # Create percentage table
+airbnb_table_perc
+airbnb_table_perc2 = paste0(round(airbnb_table_perc, 2), "%")   # Format percentages
+names(airbnb_table_perc2) = names(airbnb_table_perc)
+airbnb_table_perc2
+airbnb_table_cumsum = cumsum(airbnb_table)   # Create cumulative frequency table
+airbnb_table_cumsum
+```
+
+### References
+<div id="refs">@R-Git; @R-Material; @R-Career;@R-Tableu;@R-Action</div>
+
+### Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Language/Dikshit_Final_Project_Milestone1.Rmd', documentation = 0)), eval = FALSE}
+```

@@ -1,0 +1,194 @@
+---
+title: 'ALY6000: Module 6 Final Project'
+subtitle: 'Airbnb New York Analysis (2011 - 2019)'
+author: "Abhilash Dikshit"
+date: "2022-10-29"
+bibliography: /Users/abidikshit/R_Language/bibliography.bib
+biblio-style: "apalike"
+link-citations: true
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+### Importing packages: *FSA, FSAdata, magrittr, dplyr, tidyr, plyr and tidyverse*
+```{r}
+# install.packages("plyr")   # Import Libraries
+# install.packages("dplyr")
+# install.packages("tidyr")
+# install.packages("tidyverse")
+# install.packages("psych")
+# install.packages("ggpubr")
+# install.packages("ggplot2")
+# install.packages("scales")
+
+library(plyr) 
+library(dplyr)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(tidyverse)
+library(psych)
+library(moments)
+library(scales)
+```
+
+### Import the file *AB_NYC_2019.csv* and show basic info
+```{r}
+airbnb_unclean = read.csv("/Users/abidikshit/R_Language/AB_NYC_2019.csv")
+print('Uncleaned Dataframe Info:')
+cat("Number of Rows:", nrow(airbnb_unclean), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns:", ncol(airbnb_unclean), "\n") 
+cat("Blank cells count:", sum(!complete.cases(airbnb_unclean))) # Displaying Blank Cells Count from the original data frame
+headTail(airbnb_unclean, top = 3, bottom = 3, ellipsis = F)
+```
+
+### Dataframe Cleanup
+```{r}
+airbnb_sort= airbnb_unclean[order(-airbnb_unclean$price),] # Sorted dataframe with descending price
+headTail(airbnb_sort, top = 3, bottom = 3, ellipsis = F)
+```
+
+```{r}
+print('Removed Blank cells:')
+airbnb_modified = na.omit(airbnb_sort)
+cat("Number of Rows after removing blank cells:", nrow(airbnb_modified), "\n")
+cat("Number of Columns after removing blank cells:", ncol(airbnb_modified), "\n")
+cat("Blank cells count after removal:", sum(!complete.cases(airbnb_modified)), "\n") # Displaying blank cells count after removal
+```
+
+```{r}
+print('Resized dataframe:')
+airbnb = airbnb_modified[26892:22003,] # Remove the top 55 % and bottom 45%
+cat("Number of Rows:", nrow(airbnb), "\n")
+cat("Number of Columns:", ncol(airbnb), "\n")
+cat("Blank cells count in cleaned dataframe:", sum(!complete.cases(airbnb)), "\n") # Displaying blank cells count after removal
+headTail(airbnb, top = 3, bottom = 3, ellipsis = F) # Cleaned Dataframe
+```
+
+## Summary Of Cleaned Dataset
+```{r}
+describe(airbnb)
+summary(airbnb, digits = 1)
+range(airbnb$price)
+```
+
+## Average Price For Each Room Type
+```{r}
+print("Clean Data Average Price For Each Room Type")
+airbnb_room_mean = aggregate(price ~ room_type, airbnb, mean)
+airbnb_room_mean
+
+airbnb_pie = ggplot(airbnb_room_mean, aes(x= room_type, y= price, fill=room_type)) + geom_bar(stat="identity", width=1) +
+    coord_polar("y", start=0)+scale_fill_brewer(palette="Dark2")+labs(title = "Average Price For Each Room Type", subtitle = "Cleaned Data", fill = "") + geom_text(aes(label = round(price, digits = 1)))
+airbnb_pie
+
+print("Uncleaned Data Average Price For Each Room Type")
+airbnb_unclean_room_mean = aggregate(price ~ room_type, airbnb_unclean, mean)
+airbnb_unclean_room_mean
+
+airbnb_pie_uncleaned = ggplot(airbnb_unclean_room_mean, aes(x= room_type, y= price, fill=room_type)) + geom_bar(stat="identity", width=1) +
+    coord_polar("y", start=0)+scale_fill_brewer(palette="Dark2")+labs(title = "Average Price For Each Room Type", subtitle = "Uncleaned Data", fill = "") + geom_text(aes(label = round(price, digits = 1)))
+airbnb_pie_uncleaned
+```
+
+## Distribution Of Room Types In New York City
+```{r}
+ggplot(data = airbnb) + geom_bar(mapping = aes(x=room_type, fill=room_type), position="dodge") + scale_fill_manual(values=c("darkblue", "#E69F00","#56B4E9")) + labs(title="Distribution Of Room Types In New York City", x ="Room Type", y = "Count")
+```
+
+## Airbnbs Count For Neighbourhood In New York City
+```{r}
+ggplot(data = airbnb) + geom_bar(mapping = aes(x=neighbourhood_group, fill=neighbourhood_group), position="dodge") +
+  scale_fill_manual(values=c("#999999", "#E69F00","#56B4E9","darkblue","darkgreen")) + labs(title="Airbnbs Count For Neighbourhood In New York City", x ="Neighbourhood group", y = "Count")
+```
+
+## Airbnbs In Neighbourhood For Specific Room Type
+```{r}
+ggplot(data = airbnb) + geom_bar(mapping = aes(x=neighbourhood_group, fill=room_type), position="dodge") + labs(title="Airbnbs In Neighbourhood For Specific Room Type", x ="Neighbourhood Group", y = "Count")
+```
+
+## Difference In Price Across Different Neighbourhood Groups
+```{r}
+ggplot(data = airbnb, aes(x=neighbourhood_group, y=price, fill=neighbourhood_group))+ geom_boxplot() + scale_fill_manual(values=c("#999999", "#E69F00","#56B4E9","darkblue","darkgreen")) + labs(title="Cleaned Data: Difference In Price Across Different Neighbourhood Groups", x ="Neighbourhood Group", y = "Price")
+```
+
+## Difference In Price Across Room Types
+```{r}
+ggplot(data = airbnb, aes(x=room_type, y=price, fill=room_type))+ geom_boxplot() + scale_fill_manual(values=c("#999999","#E69F00","#56B4E9")) + labs(title="Cleaned Data: Difference In Price Across Room Types", x ="Room Type", y = "Price")
+```
+
+## Number Of Reviews Density Using Latitude and Longitude For Specific Room Types As Per Price
+```{r}
+# install.packages("sf")
+# install.packages("mapview")
+# install.packages("ggmap")
+library(sf)
+library(mapview)
+library(ggmap)
+# #mapview(airbnb_unclean, xcol = "longitude", ycol = "latitude", crs = 4326, grid = FALSE) # coordinate reference system (crs)
+# qmplot(longitude, latitude, data = airbnb_unclean, geom = "point", color = price, main = "Uncleaned Data: Density of Latitude and Longitude") + facet_wrap(~ room_type)
+# qmplot(longitude, latitude, data = airbnb, geom = "point", color = price, main = "Cleaned Data: Density of Latitude and Longitude") + facet_wrap(~ room_type)
+```
+
+## Reviews In Specific Years Based On Room Types By Adding Extra Column *Review_Year*
+```{r}
+airbnb$Review_Year = substr(airbnb$last_review,1,4) # Added Column "Review Year"
+head(airbnb)
+ggplot(data = airbnb) + geom_bar(mapping = aes(x=Review_Year, fill=room_type), position="dodge") + labs(title="Cleaned Data: Reviews In Specific Years Based On Room Types", x ="Review Year", y = "Count")
+```
+
+## Aspects Of Assignments
+
+The mean, median of the price of Airbnb's in New York City is 84.90, 85 and range is 20 i.e., from 75-95.
+![An image caption Source](/Users/abidikshit/Desktop/1.png) 
+![An image caption Source](/Users/abidikshit/Desktop/2.png) 
+Analysis For Uncleaned Data For Average Price For Each Room Type::
+
+a) Entire home/apartment average cost is 212 dollars
+b) Private rooms average cost is 90 dollars
+c) Shared rooms average cost is 70 dollars
+
+![An image caption Source](/Users/abidikshit/Desktop/3.png) 
+Analysis For Cleaned Data For Average Price For Each Room Type:
+
+a) Entire home/apartment average cost is 86 dollars
+b) Private rooms average cost is 84 dollars
+c) Shared rooms average cost is 83 dollars
+
+![An image caption Source](/Users/abidikshit/Desktop/4.png) 
+For distribution of room type in New York city, customers prefer to book the private room type stay and it is the most popular as compared to Entire home or apartment and shared room types in New York city, USA as depicted in the plot.
+
+![An image caption Source](/Users/abidikshit/Desktop/5.png) 
+
+Below we have differentiated the neighbourhood in 5 groups as shows in the given table.
+
+Out of Bronx, Brooklyn, Manhattan, Queens, and Staten Island, the percentage of Airbnb's located in Brooklyn is 45% which is the highest among all whereas Manhattan is at 39% followed by Queens which is at 13%, Bronx at 2% and Staten Island is below 1%.
+![An image caption Source](/Users/abidikshit/Desktop/13.png)
+![An image caption Source](/Users/abidikshit/Desktop/6.png) 
+For distribution of the neighborhood groups and room types located in each area, Manhattan and Brooklyn have the most rooms in general. They have the most entire private room. Manhattan and Brooklyn are basically split up between private room and entire home/apartment. The three other places have little rooms in general.
+
+![An image caption Source](/Users/abidikshit/Desktop/7.png) 
+For price comparison across different neighborhood and room types, Brooklyn and Manhattan has the highest median price out of all of them i.e., 85. It also has the least number of outliers. 
+Bronx region has the lowest median price i.e., 82.
+![An image caption Source](/Users/abidikshit/Desktop/8.png) 
+For price comparison across different neighborhood and room types, entire home or apartment has the highest median price out of all of them i.e., 86. It also has the least number of outliers whereas Private room has 85 median price. Shared room has the lowest median price i.e., 80.
+![An image caption Source](/Users/abidikshit/Desktop/9.png) 
+
+For Uncleaned Dataset, there is lesser density of price in New York city due to lower booking rates. When compared the same to Private room and Entire home or apartment, we see the graph gets denser. However, we need further analysis to get the correct data as it’s an uncleaned data set.
+![An image caption Source](/Users/abidikshit/Desktop/10.png) 
+
+For Cleaned Dataset, we can clearly analyse the density of prices across all 3 room types and Private rooms has the highest denser plot in the region.
+![An image caption Source](/Users/abidikshit/Desktop/11.png) 
+For reviews in specific years based on room types from year 2011-2019, we can clearly depict there is an exponential growth of the reviews received from year 2011-2019. Moreover, we see a huge jump of reviews received in 2019 as compared to the previous year 2018.
+For the year 2011-2019, Private room were always in demand and there was an overflowing of reviews received from the customers as compared to other room types after 2015.
+![An image caption Source](/Users/abidikshit/Desktop/12.png)
+
+## References
+<div id="refs">@R-Kaggle; @R-Material; @R-Career; @R-Gartner;@R-Tableu;@R-Action</div>
+
+## Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Language/Dikshit_Finalproject.Rmd', documentation = 0)), eval = FALSE}
+```
+

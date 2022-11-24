@@ -1,0 +1,103 @@
+---
+title: 'Module 1 Project 1: Data Analysis For Sales And Temperature Data, Student Dataset'
+author: "Abhilash Kumar Dikshit"
+date: "2022-09-28"
+bibliography: references.bib
+biblio-style: "apalike"
+link-citations: true
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+# Install VCD Package
+```{r}
+#install.packages('vcd')
+```
+# Import VCD Library
+```{r}
+library(vcd)
+```
+# Plot: Sales And Temperature Data
+```{r}
+Sales = c(8,11,15,20,21,11,18,10,6,22)
+Temperature = c(69,80,77,84,80,77,87,70,65,90)
+
+#Checking Length
+length(Sales)
+length(Temperature)
+plot(Sales,Temperature,main="Sales And Temperature Data",sub="SCATTER PLOT REPRESENTATION",
+     cex.main=2,xlab="Sales Data",ylab="Temperature Data",col="red",cex=2)
+```
+# Mean Temperature 
+```{r}
+mean(Temperature)
+```
+
+# Delete 3rd element From Sales Vector
+```{r}
+Sales_Del = Sales[-3]
+Sales_Del
+```
+# Insert Number 16 as 3rd element Into Sales Vector
+```{r}
+Sales_replace = replace(Sales,3,16)
+Sales_replace
+```
+# Create Vector <names> With Elements "Tom, Dick, Harry"
+```{r}
+names = c("Tom","Dick","Harry")
+names
+```
+# Create Matrix Of 10 integers (5 row, 2 column)
+```{r}
+create_matrix = matrix(c(1:10), nrow = 5, ncol = 2)
+create_matrix
+```
+# Create Data Frame <icSales> With Sales And Temperature Attributes
+```{r}
+icSales = data.frame (Sales,Temperature)
+icSales
+icSales_New = str(icSales)
+```
+# Summary Of icScales Data Frame
+```{r}
+summary_output = summary(icSales)
+summary_output
+```
+# Import Dataset "Student.csv"
+```{r}
+Student_Data = read.csv("Student.csv")
+Student_Data
+```
+# Display Variable Names Of "Student.csv" Dataset
+```{r}
+display_var = ls(Student_Data)
+display_var
+```
+# Summary Of Student_Data Dataset
+```{r}
+summary_student = summary(Student_Data)
+summary_student
+```
+# Summary of the information I learned about the data sets based on the given instructions
+Working with R on *MacOS* was initially a bit tough but after completing this assignment, I feel the hands are nicely set on the keyboard and flows in the same direction as my *Goal* towards being a good *Data Scientist*. 
+
+However, there were few hurdles which I faced during the process, and, after looking it up on *web* and spending a good sleepless night, I did fixed many issues and errors w.r.t the packages which was required to complete the given assignment. I have added the *References* section which I find really useful to give a gist of the R concept and how to deal with the real world data. Moreover, I learned *keyboard shortcuts* which is really necessary for R to speed up the day-to-day tasks.
+
+# Install and Import "yihui_pkgs" & "TinyTax" Package
+```{r}
+#tinytex::install_tinytex()
+#tinytex:::install_yihui_pkgs()
+library(tinytex)
+#tinytex::pdflatex('Dikshit_M1_Project1.tex')
+```
+
+# References
+<div id="refs">@R-Markdown;@R-Graphics;@R-Stack;@R-Tutorials</div>
+# Appendix
+
+```{r code=readLines(knitr::purl('~/Dikshit_M1_Project1.Rmd', documentation = 0)), eval = FALSE}
+```
+
+

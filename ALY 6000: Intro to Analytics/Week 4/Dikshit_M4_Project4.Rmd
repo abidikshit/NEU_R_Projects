@@ -1,0 +1,22 @@
+---
+title: 'ALY6000 Module 4 Project4'
+author: "Abhilash Dikshit"
+date: "2022-10-18"
+bibliography: /Users/abidikshit/R_Language/bibliography.bib
+# biblio-style: "apalike"
+link-citations: true
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+Summary
+In this module, we presented a terminology overview of quantitative data collection and analysis methods that you will become more familiar with as you progress through this program. These methods are used in common practice throughout most industries and are enhancing the data collection and analysis trends of today. We also discussed a variety of career paths for data scientists and the growing demand for data analytics talent.
+
+### References
+<div id="refs">@R-Career; @R-Gartner;@R-Tableu;@R-Action</div>
+
+<!-- ### Appendix -->
+<!-- ```{r code=readLines(knitr::purl('/Users/abidikshit/R_Language/Dikshit_M3_Project3.Rmd', documentation = 0)), eval = FALSE} -->
+<!-- ``` -->

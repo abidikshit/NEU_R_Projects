@@ -1,0 +1,215 @@
+---
+title: "R Practice – ALY 6010"
+subtitle: 'Module 4'
+author: "Abhilash Dikshit"
+date: "2022-11-27"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Projects/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+![](/Users/abidikshit/R_Projects/Images/NU.png)
+
+# Load libraries
+```{r}
+my_packages = c("plyr", "dplyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse", "gmodels", "crosstable", "moments", "skimr", "ggpubr", "pollster", "knitr", "bruceR", "png", "grid", "ggimage", "MASS", "devtools")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```
+
+```{r}
+data("cats") 
+cats
+```
+
+### Import *cats* dataset from *MASS* Library and show basic info after cleanup
+```{r}
+#Using the “cats” data set
+data("cats") 
+cats
+# Rename column 
+names(cats)[names(cats) == 'Bwt'] = 'Bodyweight'
+names(cats)[names(cats) == 'Hwt'] = 'Heartweight'
+# Delete 'NA' value, if exists
+cats = na.omit(cats)
+headTail(cats, top = 3, bottom = 3, ellipsis = F)
+```
+
+# Part 1: Two-sample t-test with unequal variance (Cat Dataset): 
+### Check if male and female cat samples have the same bodyweight
+
+### Summary Of Dataset
+```{r}
+str(cats) 
+summary(cats)
+describe(cats)
+```
+
+### Plots of cats dataset
+```{r}
+catbp = boxplot( cats$Bodyweight ~ cats$Heartweight, main="Cats Bodyweight ~ Heartweight", xlab = "Heart Weight", ylab = "Body Weight", col = "skyblue")
+```
+
+### Get separate vectors for male and female cats bodyweights and heartweights
+```{r}
+Male = subset(cats, subset=(cats$Sex=="M"))
+Female = subset(cats, subset=(cats$Sex=="F"))
+
+Male
+Female
+```
+
+### Two-sample T-TEST for *cats* dataset
+<!-- Get two sample test for male and female cats body weight to see if they have the same body weight or not -->
+<!-- H0 = Body weights of both male and female cats are same -->
+<!-- H1 = Body weights of both male and female cats are different -->
+```{r}
+cat("Two-sample T-TEST for *cats* dataset", "\n")
+options(scipen = 100)
+t.test(Male$Bodyweight, Female$Bodyweight)
+```
+
+### Conducting P value for Male and Female Cats
+```{r}
+cat("Conducting P value for Male Cats","\n")
+tm = (mean(Male$Bodyweight)-2.5)/(sd(Male$Bodyweight)/sqrt(length(Male$Bodyweight)))
+
+options(scipen = 100)
+print("Two sided hypothesis test")
+2*pt(-abs(tm),df=length(Male$Bodyweight)-1)
+print("Left-tailed hypothesis test:")
+pt(tm, df=136.84, lower.tail=T)
+print("Right-tailed hypothesis test:")
+pt(tm, df=136.84, lower.tail=F)
+
+cat("\n","Conducting P value for Female Cats","\n")
+tf = (mean(Female$Bodyweight)-2.5)/(sd(Female$Bodyweight)/sqrt(length(Female$Bodyweight)))
+
+options(scipen = 100)
+print("Two sided hypothesis test")
+2*pt(-abs(tf),df=length(Female$Bodyweight)-1)
+print("Left-tailed hypothesis test:")
+pt(tf, df=136.84, lower.tail=T)
+print("Right-tailed hypothesis test:")
+pt(tf, df=136.84, lower.tail=F)
+```
+
+### Compare Bodyweight and Heartweight of cats
+```{r}
+img= readPNG("/Users/abidikshit/R_Projects/Images/NuLogo.png")
+
+j1= ggplot(Male, aes(x=Bodyweight, y=Heartweight, color=Bodyweight, shape=Bodyweight)) +
+  geom_jitter(shape=17) + 
+  labs(title = "Bodyweight~Heartweight for Male cats") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  annotation_custom(rasterGrob(img, width = unit(0.2,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+
+j2= ggplot(Female, aes(x=Bodyweight, y=Heartweight, color=Bodyweight, shape=Bodyweight)) +
+  geom_jitter(shape=17) + 
+  labs(title = "Bodyweight~Heartweight for Female cats") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  annotation_custom(rasterGrob(img, width = unit(0.2,"npc"), height = unit(0.2,"npc")), -Inf, Inf, -Inf, Inf)
+
+ggarrange(j1, j2, common.legend = T, legend = "bottom", labels = c("A", "B"))
+```
+
+# Part 2: Two-sample t-test for evaluating whether meditation has an effect on sleep quality
+<!-- To verify researchers claim that meditation improves sleeping quality before and after the workshop-->
+```{r}
+# Average sleeping quality scores in the week before the workshop
+before_ss= c(4.6, 7.8, 9.1, 5.6, 6.9, 8.5, 5.3, 7.1, 3.2, 4.4)
+# Average sleeping quality scores in the week following the workshop
+after_ss= c( 6.6, 7.7, 9.0, 6.2, 7.8, 8.3, 5.9, 6.5, 5.8, 4.9) 
+
+cat("Mean of sleeping score before meditation:", mean(before_ss), "\n")
+cat("Mean of sleeping score after meditation:", mean(after_ss), "\n")
+cat("Summary of sleeping score before and after meditation:", "\n")
+summary(before_ss, after_ss)
+```
+
+### Two sample t-test for sleep quality
+<!-- H0 = sleep quality is same before and after meditation -->
+<!-- H1=  meditation change sleep quality -->
+```{r}
+cat("Two sample for sleeping score before and after meditation:", "\n")
+t.test(before_ss, after_ss) 
+```
+
+### Conducting P value for sleep quality before and after meditation
+```{r}
+cat("Conducting P value for sleep quality before meditation:", "\n")
+tb = (mean(before_ss)-6)/(sd(before_ss)/sqrt(length(before_ss)))
+options(scipen = 100)
+
+print("Two sided hypothesis test")
+2*pt(-abs(tb),df=length(before_ss)-1)
+print("Left-tailed hypothesis test:")
+pt(tb, df=15.641, lower.tail=T)
+print("Right-tailed hypothesis test:")
+pt(tb, df=15.641, lower.tail=F)
+
+cat("\n", "Conducting P value for sleep quality after meditation:", "\n")
+ta = (mean(after_ss)-6)/(sd(after_ss)/sqrt(length(after_ss)))
+print("Two sided hypothesis test")
+2*pt(-abs(ta),df=length(after_ss)-1)
+print("Left-tailed hypothesis test:")
+pt(ta, df=15.641, lower.tail=T)
+print("Right-tailed hypothesis test:")
+pt(ta, df=15.641, lower.tail=F)
+```
+
+### Paired T test for the sleep quality
+<!-- H0(claim)= meditation improve sleeping quality before and after the workshop -->
+<!-- H1= meditation does not improve sleeping quality before and after the workshop -->
+```{r}
+cat("Paired T test with level of significance 0.05")
+t.test(before_ss,after_ss,paired = T,conf.level = 0.95)
+
+cat("Paired T test with level of significance 0.1")
+t.test(before_ss,after_ss,paired = T,conf.level = 0.90)
+```
+
+### Compare Bodyweight and Heartweight of cats
+```{r}
+boxplot(before_ss, after_ss,
+main = "Avg sleeping quality scores per week",
+ylab = "Avg sleeping quality scores",
+names = c("Before workshop","After workshop"),
+col = c("orange","skyblue"),
+border = "brown",
+horizontal = F,
+notch = F
+)
+```
+
+# Aspects Of Assignments
+A.1. In a Two sample t-test, for the significance level 0.05, the P-value of 0.000000000000008831 is lesser than significance level. Hence, we reject the null hypothesis H0 due to insufficient data to identify if the body weights of both male and female cats are same.
+
+Also, by increasing the body weight of cats, their heart weight increase. Hence, body weight and heart weight are directly related to each other.
+
+![An image caption Source: Part A.1](/Users/abidikshit/R_Projects/ALY6010/Week4/PartA1.png)
+A.2.  Plot A and B shows the relation between body weight and heart weight in Male and Female cats.
+There is a slight difference in the relation between the male and female cats based on two gender as male cats have dense plot rather than female cats.
+
+![An image caption Source: Part A.2](/Users/abidikshit/R_Projects/ALY6010/Week4/PartA.png)
+
+B. In a Two sample t-test, for the significance level 0.05, the P-value of 0.41 is greater than significant level. Hence, we accept null hypothesis H0 and we can conclude that sleep quality is same before and after meditation based on the workshop.
+
+In a Paired sample t-test, for the significance level 0.05, the P-value of 0.08322 is greater than significant level. Hence, we accept the null hypothesis H0 and we can conclude that sleep quality is same before and after meditation based on the workshop
+
+In a Paired sample t-test, for the significance level 0.1, the P-value of 0.08322 is lesser than significant level. Hence, we reject the null hypothesis H0 and we can conclude that meditation does not improve sleeping quality before and after the workshop.
+
+We can also identify by changing the significant level, the percent of confidence interval and its range changed. However, the p value didn’t change, and it did had an impact on null hypothesis HO.
+
+![An image caption Source: Part B](/Users/abidikshit/R_Projects/ALY6010/Week4/PartB.png)
+
+# References
+<div id="refs">@R-Career;@R-Action;@R-Cran;@R-Material1;@R-Material2;@R-Material3;@R-Material4</div>
+
+# Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6010/Week4/Dikshit_M4_R_Practice.Rmd', documentation = 0)), eval = FALSE}
+```

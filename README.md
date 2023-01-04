@@ -15,7 +15,7 @@ Data Analysis Using R Language
 ### Data:
 - [Data sets](Data)
 
-#### Subjects:
+### Subjects:
 - [ALY6000](ALY6000)
 - [ALY6010](ALY6010)
 

@@ -1,0 +1,179 @@
+---
+title: "R Practice – ALY 6010"
+subtitle: 'Module 6'
+author: "Abhilash Dikshit"
+date: "2022-12-19"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Projects/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+![](/Users/abidikshit/R_Projects/Images/NU.png)
+
+# Load libraries
+```{r}
+my_packages = c("plyr", "dplyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse", "gmodels", "corrgram", "moments", "corrplot", "ggpubr", "GGally", "knitr", "bruceR", "png", "grid", "ggimage","Hmisc", "stargazer")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```
+
+### Import dataset and show basic info after cleanup
+```{r}
+data = read.csv("/Users/abidikshit/R_Projects/Data/Module6Data.csv", header = T)
+data
+cat("Number of Rows before cleanup:", nrow(data), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns before cleanup:", ncol(data), "\n") 
+cat("Blank cells count before cleanup:", sum(!complete.cases(data))) # Displaying Blank Cells Count for uncleaned data
+```
+
+### Data cleanup
+```{r}
+# Rename column 
+names(data)[names(data) == 'time'] = 'Time'
+names(data)[names(data) == 'treatment'] = 'Treatment'
+names(data)[names(data) == 'smoker'] = 'Smoker'
+names(data)[names(data) == 'age'] = 'Age'
+names(data)[names(data) == 'outcome'] = 'Outcome'
+names(data)[names(data) == 'hrt_months'] = 'HormoneTherapy'
+names(data)[names(data) == 'wbc'] = 'WhiteBloodCells'
+# Delete 'NA' value, if exists
+data_new= na.omit(data)
+# Top and bottom 3 records
+headTail(data_new, top = 3, bottom = 3, ellipsis = F)
+cat("Number of Rows after cleanup:", nrow(data_new), "\n")
+cat("Number of Columns after cleanup:", ncol(data_new), "\n") 
+cat("Blank cells count after cleanup:", sum(!complete.cases(data_new)))
+```
+
+### Summary Of Dataset
+```{r}
+str(data_new) 
+summary(data_new, digits = 1)
+#describe(data_new)
+```
+
+### Find unique value for Treatment
+```{r}
+unique(data_new$Treatment)
+```
+
+### Visualize data using scatter plots
+```{r}
+ggscatter(data_new, x = "Age", y = "Treatment", 
+          add = "reg.line", conf.int = T, 
+          cor.coef = T, cor.method = "pearson",
+          xlab = "Age", ylab = "Treatment")
+```
+
+### Load fastDummies package
+```{r}
+#install.packages("fastDummies")
+library(fastDummies)
+```
+
+### Create dummy variable using dummy_columns function
+```{r}
+data_new= dummy_cols(data_new, select_columns = "Treatment")
+data_new
+```
+
+### Linear Regression for Treatment_Gabapentin
+```{r}
+reg1= lm(Treatment_Gabapentin ~ Outcome ,data= data_new)
+summary(reg1)
+```
+
+```{r}
+stargazer(reg1,type = "text")
+```
+
+### Scatter Plot for Treatment_Gabapentin
+```{r}
+data_new %>% drop_na() %>% ggplot(aes(Outcome,Treatment_Gabapentin))+
+  geom_point()+ geom_smooth(method = "lm",formula = y~x)
+```
+
+### Linear Regression for Treatment_Placebo
+```{r}
+reg2= lm(Treatment_Placebo ~ Outcome, data= data_new)
+summary(reg2)
+```
+
+### Using stargazer function for Linear regression model 2
+```{r}
+stargazer(reg2,type = "text")
+```
+
+### Scatter plot for Treatment_Placebo
+```{r}
+data_new %>% drop_na() %>% ggplot(aes(Outcome, Treatment_Placebo))+
+  geom_point()+ geom_smooth(method = "lm",formula = y~x)
+```
+
+### Multiple regression for Variables Outcome in comparison with WhiteBloodCells, Treatment_Placebo, and Treatment_Gabapentin
+```{r}
+multiple_regression=lm(Outcome~ WhiteBloodCells + Treatment_Placebo + Treatment_Gabapentin, data= data_new)
+summary(multiple_regression)
+```
+
+### Plot for Multiple regression model
+```{r}
+plot(multiple_regression)
+```
+
+```{r}
+equation1=function(x){coef(pr2)[2]*x+ coef(pr2)[1]}
+equation2=function(x){coef(pr2)[2]*x+ coef(pr2)[1]+ coef(pr2)[3]}
+
+ggplot(data_new, aes(y= Outcome, x= WhiteBloodCells, color=factor(Treatment))) +
+  geom_point() +
+  stat_function(fun=equation1, geom="line",color=scales::hue_pal()(2)[1],lwd=1)+
+  stat_function(fun=equation2, geom="line",color=scales::hue_pal()(2)[2],lwd=1)
+```
+
+```{r}
+linear1= lm(Outcome~ WhiteBloodCells + Treatment_Gabapentin, data=subset(data_new, Treatment_Gabapentin ==1))
+summary(linear1)
+```
+
+```{r}
+eq3= function(x){coef(linear1)[2]*x+ coef(linear1)[1]}
+eq4= function(x){coef(linear1)[2]*x+ coef(linear1)[1]+coef(linear1)[3]}
+
+ggplot(data_new, aes(y= Outcome,x= WhiteBloodCells, color= factor(Treatment))) +
+  geom_point()+
+  stat_function(fun=eq3,geom="line",color=scales::hue_pal()(2)[1],lwd=1)+
+  stat_function(fun=eq4,geom="line",color=scales::hue_pal()(2)[2],lwd=1)
+```
+
+```{r}
+linear2= lm(Outcome~ WhiteBloodCells + Treatment_Placebo, data=subset(data_new, Treatment_Placebo==1))
+summary(linear2)
+```
+
+```{r}
+eq5= function(x){coef(linear2)[2]*x+coef(linear2)[1]}
+eq6= function(x){coef(linear2)[2]*x+coef(linear2)[1]+coef(linear2)[3]}
+
+ggplot(data_new, aes(y= Outcome,x= WhiteBloodCells,color= factor(data_new$Treatment))) + geom_point()+
+  stat_function(fun=eq5,geom="line",color=scales::hue_pal()(2)[2],lwd=1) +
+  stat_function(fun=eq6,geom="line",color=scales::hue_pal()(2)[1],lwd=1)
+```
+
+```{r}
+ggplot(data_new, aes(Age, Outcome)) + 
+  geom_point(aes(shape = factor(data_new$Treatment))) + 
+  geom_point(aes(color = factor(data_new$Treatment))) + 
+  stat_smooth(method = "lm", col="skyblue", aes(color = Treatment_Gabapentin))
+```
+
+### References
+<div id="refs">@R-Career;@R-Action;@R-Cran;@R-Material1;@R-Material2</div>
+
+### Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6010/Week6/Dikshit_M6_R_Practice.Rmd', documentation = 0)), eval = FALSE}
+```

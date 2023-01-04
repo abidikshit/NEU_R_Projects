@@ -1,0 +1,254 @@
+---
+title: "Final Project Milestone 2"
+subtitle: 'Module 4'
+author: "Abhilash Dikshit"
+date: "2022-12-09"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Projects/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+![](/Users/abidikshit/R_Projects/Images/NU.png)
+
+### Load libraries
+```{r}
+my_packages = c("plyr", "dplyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse", "gmodels", "crosstable", "moments", "skimr", "ggpubr", "pollster", "knitr", "bruceR", "png", "grid", "ggimage")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```
+
+### Import the file *gapminderDataFiveYear.csv* from github and show basic info
+```{r}
+country_raw =  read.csv("https://raw.githubusercontent.com/plotly/datasets/master/gapminderDataFiveYear.csv", stringsAsFactors = FALSE)
+cat("Number of Rows For Uncleaned Dataset:", nrow(country_raw), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns For Uncleaned Dataset:", ncol(country_raw), "\n") 
+cat("Blank cells count For Uncleaned Dataset:", sum(!complete.cases(country_raw))) # Displaying Blank Cells Count from the original data frame
+headTail(country_raw, top = 3, bottom = 3, ellipsis = F)
+```
+
+### Dataframe Cleanup
+```{r}
+# Sort dataframe with descending year
+country_sort= country_raw[order(-country_raw$year),]
+
+# Rename columns
+names(country_sort)[names(country_sort) == 'country'] = 'COUNTRY'
+names(country_sort)[names(country_sort) == 'year'] = 'YEAR'
+names(country_sort)[names(country_sort) == 'pop'] = 'POPULATION'
+names(country_sort)[names(country_sort) == 'continent'] = 'CONTINENT'
+names(country_sort)[names(country_sort) == 'lifeExp'] = 'LIFE_EXPECTANCY'
+names(country_sort)[names(country_sort) == 'gdpPercap'] = 'GDP_PER_CAPITA'
+
+# Omitted regular expression with gsub() function  
+country_sort$LIFE_EXPECTANCY = gsub("'[.]*","",as.integer(country_sort$LIFE_EXPECTANCY))
+country_sort$GDP_PER_CAPITA = gsub("'[.]*","",as.integer(country_sort$GDP_PER_CAPITA))
+
+# Changing column class type from character to integer
+country_sort$LIFE_EXPECTANCY = as.integer(country_sort$LIFE_EXPECTANCY)
+country_sort$GDP_PER_CAPITA = as.integer(country_sort$GDP_PER_CAPITA)
+
+# Added Percentage Column "LIFE_EXPECTANCY_PERCENTAGE"
+country = country_sort %>% mutate(LIFE_EXPECTANCY_PERCENTAGE = LIFE_EXPECTANCY/sum(LIFE_EXPECTANCY) *100)
+headTail(country, top = 3, bottom = 3, ellipsis = F)
+```
+
+### Summary Of Cleaned Dataset
+```{r}
+describe(country)
+summary(country, digits = 1)
+str(country)
+
+#Mean, Min, Max, STD of CONTINENT 
+country %>% 
+group_by(CONTINENT)%>%
+summarise_at(vars(LIFE_EXPECTANCY),list(Mean=mean, Min=min, Max=max,STD=sd))
+
+#Mean, Min, Max, STD of COUNTRY 
+country %>% 
+group_by(COUNTRY)%>%
+summarise_at(vars(GDP_PER_CAPITA),list(Mean=mean, Min=min, Max=max,STD=sd))
+```
+
+### Part 1: One-sample t-test
+### Question 1: Life expectancy of each continent greater than 60 or not
+### Life Expectancy Of Each Continent
+```{r}
+ggplot(country, mapping = aes(x = reorder(CONTINENT, LIFE_EXPECTANCY), y = LIFE_EXPECTANCY, fill = CONTINENT)) +
+   geom_boxplot() + labs(x=NULL, y="LIFE EXPECTANCY", title = "Life Expectancy Of Each Continent") +
+    geom_hline(yintercept = 58.9689, linetype="dashed", color = "red", linewidth = 1) +
+    theme(plot.title = element_text(hjust = 0.5)) # mean(country$LIFE_EXPECTANCY= 58.9689
+```
+### Question 1: t-test for Life expectancy
+<!-- Life expectancy of each continent greater than 60 or not (right-tailed test) -->
+<!-- H0 = The Life expectancy of each continent is equal or lower than 60 -->
+<!-- H1 = The Life expectancy of each continent is more than 60 -->
+```{r}
+test1= t.test(country$LIFE_EXPECTANCY, mu = 60)
+test1
+```
+
+### Statistical measures for question 1
+```{r}
+cat("Mean of Life expectancy:", mean(country$LIFE_EXPECTANCY), "\n")
+cat("Median of Life expectancy:", median(country$LIFE_EXPECTANCY), "\n")
+```
+
+### Attributes stored in test1
+```{r}
+cat("Attributes stored in test1 t-test:", "\n")
+attributes(test1)
+```
+
+### Extract Attributes from test1
+```{r}
+cat("Extract conf.int attribute from test1:", "\n")
+test1$conf.int
+cat("Extract null.value attribute from test1:", "\n")
+test1$null.value
+cat("Extract parameter attribute from test1:", "\n")
+test1$parameter
+```
+
+### Density Plot of Life Expectancy For Each Continent
+```{r}
+ggplot(country, aes(LIFE_EXPECTANCY)) + geom_density(aes(fill=CONTINENT), alpha=1/4)+ 
+    labs(title = "Density Plot of Life Expectancy For Each Continent")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### Part 2: Two-sample t-test
+### Question 2: Asia has higher GDP Per Capita as compared to Europe. Is it true?
+
+### Get separate vector for Asia and Europe
+```{r}
+asia = subset(country, subset=(country$CONTINENT=="Asia"))
+asia
+europe = subset(country, subset=(country$CONTINENT=="Europe"))
+europe
+```
+
+### Two sample t-test: Asia has higher GDP Per Capita as compared to Europe
+<!-- H0= Asia has higher GDP per capita as compared to Europe -->
+<!-- H1= Asia does not have higher GDP per capita as compared to Europe -->
+```{r}
+options(scipen = 100)
+test2= t.test(asia$GDP_PER_CAPITA, europe$GDP_PER_CAPITA)
+test2
+```
+
+### Statistical measures for question 2
+```{r}
+cat("Mean of GDP_PER_CAPITA:", mean(country$GDP_PER_CAPITA), "\n")
+cat("Median of GDP_PER_CAPITA:", median(country$GDP_PER_CAPITA), "\n")
+```
+
+### GDP Per Capita For Continents
+```{r}
+continent_data= ggplot(country, aes(x=CONTINENT, y=GDP_PER_CAPITA, fill=CONTINENT)) + 
+  geom_bar(position='stack', stat='identity') + labs(title = "GDP Per Capita For Continents") +
+  theme(plot.title = element_text(hjust = 0.5))+
+  theme(axis.text.x = element_text(angle = 90)) + 
+  theme(axis.title.x = element_blank())
+continent_data
+```
+
+### Attributes stored in test2
+```{r}
+attributes(test2)
+```
+
+### Extract attributest from test2
+```{r}
+cat("Extract conf.int attribute from test2:", "\n")
+test2$conf.int
+cat("Extract null.value attribute from test2:", "\n")
+test2$null.value
+cat("Extract parameter attribute from test2:", "\n")
+test2$parameter
+```
+
+### Question 3: Africa has higher Population as compared to Americas. Is it true?
+### Get separate vector for Africa and Americas
+```{r}
+africa = subset(country, subset=(country$CONTINENT=="Africa"))
+africa
+americas = subset(country, subset=(country$CONTINENT=="Americas"))
+americas
+```
+
+### Two sample t-test: Africa has higher population as compared to Americas
+<!-- H0= Africa has higher population as compared to Americas -->
+<!-- H1= Africa does not have higher population as compared to Americas -->
+```{r}
+options(scipen = 100)
+test3= t.test(africa$POPULATION, americas$POPULATION)
+test3
+```
+
+### Statistical measures for question 3
+```{r}
+cat("Mean of Population:", mean(country$POPULATION), "\n")
+cat("Median of Population:", median(country$POPULATION), "\n")
+```
+
+### Population In Africa and Americas
+### Population in Continents
+```{r}
+country_pop= plot_ly(country, type='bar', x = ~CONTINENT, y = ~POPULATION)
+country_pop= country_pop %>% layout(uniformtext=list(minsize=8, mode='hide'), title= 'Population in Continents')
+country_pop
+```
+
+### Attributes stored in test3
+```{r}
+attributes(test3)
+```
+
+### Extract attributest from test3
+```{r}
+cat("Extract conf.int attribute from test3:", "\n")
+test3$conf.int
+cat("Extract null.value attribute from test3:", "\n")
+test3$null.value
+cat("Extract parameter attribute from test3:", "\n")
+test3$parameter
+```
+
+### Aspects Of Assignments
+Part 1: One-sample t-test- Life expectancy of each continent greater than 60 or not
+The P-value of 0.001012 is lesser than significance level. Hence, we reject the null hypothesis H0 to identify if the Life expectancy of each continent is greater than 60.
+
+![An image caption Source: Part 1.A](/Users/abidikshit/R_Projects/ALY6010/Final_Projects/Milestone2/Part1A.png)
+![An image caption Source: Part 1.B](/Users/abidikshit/R_Projects/ALY6010/Final_Projects/Milestone2/Part1B.png)
+
+Part 2-A: Two-sample t-test- Asia has higher GDP Per Capita as compared to Europe. Is it true?
+The P-value of 0.00000000000007902 is lesser than significance level. Hence, we reject the null hypothesis H0 to identify if Asia has higher GDP Per Capita as compared to Europe.
+![An image caption Source: Part 2.A](/Users/abidikshit/R_Projects/ALY6010/Final_Projects/Milestone2/Part2A.png)
+
+Part 2-B: Two-sample t-test- Africa has higher population as compared to Americas. Is it true?
+The P-value of 0.000001915 is lesser than significance level. Hence, we reject the null hypothesis H0 to identify if Africa has higher population as compared to Americas.
+![An image caption Source: Part 2.B](/Users/abidikshit/R_Projects/ALY6010/Final_Projects/Milestone2/Part2B.png)
+
+### References
+<div id="refs">@R-Career;@R-Action;@R-Cran;@R-Material1;@R-Material2;@R-Material3;@R-Material4</div>
+
+### Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6010/Final_Projects/Milestone2/Dikshit_Final_Project_Milestone2.Rmd', documentation = 0)), eval = FALSE}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,448 @@
+---
+title: "R Practice – ALY 6010"
+subtitle: 'Final Project'
+author: "Abhilash Dikshit"
+date: "2022-12-18"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Projects/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+![](/Users/abidikshit/R_Projects/Images/NU.png)
+
+# Data Analysis
+### Importing the libraries required for the analysis
+
+```{r}
+my_packages = c("tidyverse", "ggthemes", "ggExtra", "caret", "glmnet", "corrplot", "leaflet", "RColorBrewer", "plotly", "grid", "gridExtra", "dplyr", "ggplot2", "reshape2", "data.table", "knitr", "png", "ggimage", "GGally", "psych", "Hmisc")
+
+lapply(my_packages, require, character.only = T)
+```
+
+```{r}
+#install.packages(remotes)
+#remotes::install_github("r-lib/tidyselect")
+```
+
+### Importing the data set from Kaggle for analysis
+```{r}
+airbnb =  read.csv("/Users/abidikshit/R_Projects/Data/AB_NYC_2019.csv", encoding="UTF-8", stringsAsFactors = F, na.strings = c(""))
+cat("Number of Rows For Uncleaned Dataset:", nrow(airbnb), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns For Uncleaned Dataset:", ncol(airbnb), "\n") 
+cat("Blank cells count For Uncleaned Dataset:", sum(!complete.cases(airbnb))) # Displaying Blank Cells Count from the original data frame
+```
+
+# Data exploration
+### Identify missing and NA values in the data
+```{r}
+colSums(is.na(airbnb))
+```
+
+### Summary of data
+```{r}
+#install.packages("DT", type = "binary")
+library(DT)
+# View the head and tail of the data
+DT::datatable(headTail(airbnb, 3, 3, ellipsis = F), rownames = F)
+```
+
+### Dimension and summary of data
+```{r}
+options(scipen = 100)
+cat("Dimension of the data","\n")
+dim(airbnb)
+cat("Summary of the data","\n")
+summary(airbnb)
+```
+
+### Get the classes of all columns in a data frame
+```{r}
+sapply(airbnb, class)
+```
+
+### Data Cleaning
+```{r}
+# Following columns can be omitted since they don’t carry any useful information and hence wont’ be used in predictive models:
+# id
+# host_id
+names_to_delete = c("id", "host_id")
+airbnb[names_to_delete] = NULL
+```
+
+```{r}
+# Since I used stringsAsFactors = F in read.csv function, I have to transform following character columns to factor columns:
+# host_name
+# neighbourhood_group
+# neighbourhood
+# room_type
+
+names_to_factor = c("host_name", "neighbourhood_group", "neighbourhood", "room_type")
+airbnb[names_to_factor] = map(airbnb[names_to_factor], as.factor)
+```
+
+```{r}
+# Column last_review_ has to be converted to airbnb type using function ymd from lubridate package
+airbnb[c("last_review")] = airbnb[c("last_review")] %>% map(~lubridate::ymd(.x))
+```
+
+### Sanity check
+```{r}
+glimpse(airbnb)
+```
+
+### Missing data
+```{r}
+th = theme(axis.title = element_text(), axis.title.x = element_text())
+missing_airbnb= airbnb %>% summarise_all(~(sum(is.na(.))/n()))
+missing_airbnb= gather(missing_airbnb, key = "variables", value = "percent_missing")
+missing_airbnb= missing_airbnb[missing_airbnb$percent_missing > 0.0, ] 
+
+ggplot(missing_airbnb, aes(x = reorder(variables, percent_missing), y = percent_missing)) +
+geom_bar(stat = "identity", fill = "#56B4E9", aes(color = I('white')), size = 0.3)+ 
+  xlab('variables')+ coord_flip() + 
+  th + 
+  labs(title = "Missing Data") +
+  xlab("Column name") + ylab("Percentage missing") +
+  annotate("text", x = 1.5, y = 0.1,
+      label = "host_name and name have less than 0.001\n percentage missing", 
+      color = "slateblue", size = 5)
+
+# Columns reviews_per_month and last_review have exactly the same value of percentage missing (~ 20.56 %) because if we don’t know when the last review was, we can not calculate reviews per month)
+```
+
+# Data Visualisation
+### Price
+<!-- The most important (target) variable is price. -->
+
+### Histogram & Density with log10 transformation for price
+<!-- Original distribution is very skewed, logarithmic transformation can be used to gain better insight into data. -->
+```{r}
+ggplot(airbnb, aes(price)) +
+  geom_histogram(bins = 30, aes(y = ..density..), fill = "#E69F00") + 
+  geom_density(alpha = 0.2, fill = "purple") +
+  th +
+  ggtitle("Transformed distribution of price",
+          subtitle = expression("With" ~'log'[10] ~ "transformation of x-axis")) +
+  geom_vline(xintercept = round(mean(airbnb$price), 2), size = 2, linetype = 3) +
+  scale_x_log10() +
+  annotate("text", x = 1800, y = 0.75,label = paste("Mean price = ", paste0(round(mean(airbnb$price), 2), "$")),
+           color =  "#56B4E9", size = 5)
+```
+
+### Histogram & Density with log10 transformation for neighbourhood groups
+<!-- Visualise the distribution of price for every neighbourhood groups -->
+```{r}
+airbnb_nh= airbnb %>%
+  group_by(neighbourhood_group) %>%
+  summarise(price = round(mean(price), 2))
+
+ggplot(airbnb, aes(price)) +
+  geom_histogram(bins = 30, aes(y = ..density..), fill = "#E69F00") + 
+  geom_density(alpha = 0.2, fill = "purple") +
+  th +
+  ggtitle("Transformed distribution of price\n by neighbourhood groups",
+          subtitle = expression("With" ~'log'[10] ~ "transformation of x-axis")) +
+  geom_vline(data = airbnb_nh, aes(xintercept = price), size = 2, linetype = 3) +
+  geom_text(data = airbnb_nh,y = 1.5, aes(x = price + 1400, label = paste("Mean  = ",price)), color = "#56B4E9", size = 4) +
+  facet_wrap(~neighbourhood_group) +
+  scale_x_log10() 
+```
+
+### Above Average Price Objects by Neighbourhood Areas
+```{r}
+airbnb %>% filter(price >= mean(price)) %>% group_by(neighbourhood_group, room_type) %>% tally %>% 
+  ggplot(aes(reorder(neighbourhood_group,desc(n)), n, fill = room_type)) +
+  th +
+  xlab(NULL) +
+  ylab("Number of objects") +
+  ggtitle("Number of above average price objects",
+          subtitle = "Most of them are entire homes or apartments") +
+           geom_bar(stat = "identity")
+```
+
+### Boxplot of price by room type
+<!-- Investigate price by room type: -->
+<!-- Entire home or apartment -->
+<!-- Private Room -->
+<!-- Shared Room -->
+```{r}
+ggplot(airbnb, aes(x = room_type, y = price)) +
+  geom_boxplot(aes(fill = room_type)) + scale_y_log10() +
+  th + 
+  xlab("Room type") + 
+  ylab("Price") +
+  ggtitle("Boxplots of price by room type",
+          subtitle = "Entire homes and apartments have the highest avg price") +
+  geom_hline(yintercept = mean(airbnb$price), color = "purple", linetype = 2)
+
+# As expected, entire home or apartment type has the highest average price. It was also expected that shared rooms would have lower price than private rooms.
+```
+### Summary of price distributions
+### Price and Availability (Scatter Plot)
+```{r}
+x= airbnb$availability_365
+y= airbnb$price
+plot(x, y, main = "Relationship between availability",
+     xlab = "Availability during year", ylab = "Price",
+     pch = 19, frame = F, col= "skyblue")
+abline(lm(y ~ x, data = airbnb), col = "blue")
+
+# It’s hard to see clear pattern, but there’s a lot of expensive objects with few available days and many available days.
+```
+
+### Price and Number of Reviews (Scatter Plot)
+```{r}
+x= airbnb$number_of_reviews
+y= airbnb$price
+plot(x, y, main = "Relationship between number of reviews",
+     xlab = "Number of reviews", ylab = "Price",
+     pch = 19, frame = F, col= "skyblue")
+abline(lm(y ~ x, data = airbnb), col = "blue")
+```
+
+### Number of objects by neighbourhood areas
+```{r}
+airbnb %>% group_by(neighbourhood_group) %>% tally() %>% 
+  ggplot(aes(x = reorder(neighbourhood_group, n), n)) +
+  geom_bar(stat = "identity", fill = "purple") +
+  ggtitle("Number of objects by neighbourhood group") +
+  geom_text(aes(x = neighbourhood_group, y = 1, label = paste0(n),
+                colour = ifelse(neighbourhood_group %in% 
+                              c("Manhattan", "Brooklyn", "Queens"), '1', '2')),
+            hjust=-1.5, vjust=.5, size = 4, 
+            fontface = 'bold') +
+  coord_flip() +
+  scale_color_manual(values=c("white","black"), guide = F) +
+  labs(x = NULL, y = NULL)
+
+# Manhattan has the highest number of objects while it’s the smallest neighbourhood group by area. That can be explained by the fact that it’s the most popular neighbourhood group with biggest GDP.
+```
+
+### Hypothesis Testing
+### Question1: Does Airbnb prices affects the number of reviews?
+<!-- H0(claim)= Airbnb's with higher prices have higher reviews -->
+<!-- H1= Airbnb's with higher prices have lower reviews -->
+### Two-sample t-test for prices ~ number of reviews: 
+### Get separate vectors for airbnb prices> $150 and <= $150
+```{r}
+price_high = subset(airbnb, subset=(airbnb$price>150), select= c(neighbourhood_group:availability_365))
+price_low = subset(airbnb, subset=(airbnb$price<=150), select= c(neighbourhood_group:availability_365))
+price_high
+price_low
+```
+```{r}
+length(price_high$number_of_reviews) == length(price_low$number_of_reviews)
+```
+
+### Create scatterplot of x vs. y
+```{r}
+x = price_high$number_of_reviews
+y = price_low$number_of_reviews
+plot(x, y[1:length(x)],main = "Number of reviews for price> 150 and <= 150", xlab="Number of reviews for price >150",ylab="Number of reviews for price <=150", col=c("darkblue","green"))
+abline(lm(y[1:length(x)] ~ x), col = "red")
+```
+
+### Sum of number of reviews based on prices
+```{r}
+sum(as.numeric(price_high$number_of_reviews, na.rm = TRUE))
+sum(as.numeric(price_low$number_of_reviews, na.rm = TRUE))
+```
+
+```{r}
+cat("Mean of higher number_of_reviews:", mean(price_high$number_of_reviews), "\n")
+cat("Mean of lower number_of_reviews:", mean(price_low$number_of_reviews), "\n")
+summary(price_high$number_of_reviews)
+summary(price_low$number_of_reviews)
+```
+
+```{r}
+options(scipen = 100)
+t.test(price_high$number_of_reviews,price_low$number_of_reviews, conf.level = 0.95)
+```
+
+### Question2: Does Airbnb availability for more than 200 days affects the number of reviews?
+### Two-sample t-test for airbnb's availability ~ number of reviews: 
+<!-- H0(claim)= Airbnb's with 365 days availability have higher reviews -->
+<!-- H1= Airbnb's with 365 days availability have lower reviews -->
+### Two-sample t-test for airbnb availability ~ number of reviews: 
+### Get separate vectors for airbnb availability
+```{r}
+availability_high = subset(airbnb, subset=(airbnb$availability_365>200), select= c(neighbourhood_group:availability_365))
+availability_low = subset(airbnb, subset=(airbnb$availability_365<=200), select= c(neighbourhood_group:availability_365))
+availability_high
+availability_low
+```
+```{r}
+length(availability_high$number_of_reviews) == length(availability_high$number_of_reviews)
+```
+
+### Create scatterplot of x vs. y
+```{r}
+x = availability_high$number_of_reviews
+y = availability_high$number_of_reviews
+plot(x, y,main = "Number of reviews for availability > 200 and <= 200", xlab="Number of reviews for availability > 200",ylab="Number of reviews for availability <=200", , col=c("darkblue","green"))
+abline(lm(y ~ x), col = "red")
+```
+### Sum of number of reviews based on availability
+```{r}
+sum(availability_high$number_of_reviews, na.rm = TRUE)
+sum(availability_low$number_of_reviews, na.rm = TRUE)
+```
+
+```{r}
+cat("Mean of higher prices:", mean(availability_high$number_of_reviews), "\n")
+cat("Mean of lower prices:", mean(availability_low$number_of_reviews), "\n")
+summary(availability_high$number_of_reviews)
+summary(availability_low$number_of_reviews)
+```
+
+```{r}
+options(scipen = 100)
+t.test(availability_high$number_of_reviews,availability_low$number_of_reviews, conf.level = 0.95)
+```
+
+### Summary Of Dataset
+### Correlation Matrix
+<!-- Spearman correlation -->
+```{r}
+options(scipen = 100)
+airbnb_cor= airbnb[, sapply(airbnb, is.numeric)]
+airbnb_cor= airbnb_cor[complete.cases(airbnb_cor), ]
+correlation_matrix= cor(airbnb_cor, method = "spearman", use = "complete.obs")
+#correlation_matrix
+corrplot(correlation_matrix, method = "color")
+#create matrix of correlation coefficients and p-values
+rcorr(as.matrix(airbnb_cor))
+```
+
+### Data Splitting
+<!-- Training set will be 70% percent of the original data. Objects with price equal to 0 will be omitted since price can’t be 0 (faulty records). They would make predictive models significantly weaker. -->
+```{r}
+airbnb= airbnb %>% mutate(id = row_number())
+airbnb_train= airbnb %>% sample_frac(.7) %>% filter(price > 0)
+airbnb_test= anti_join(airbnb, airbnb_train, by = 'id') %>% filter(price > 0)
+
+# sanity check
+nrow(airbnb_train) + nrow(airbnb_test) == nrow(airbnb %>% filter(price > 0))
+```
+
+### 1st Linear Regression model
+```{r}
+options(scipen = 100)
+first_model= caret::train(price ~ latitude + longitude + room_type + minimum_nights + availability_365 + neighbourhood_group, data = airbnb_train, method = "lm")
+
+summary(first_model)
+
+# This model is not so good. Median residual error is -24.2, while it should be near 0. R2=0.1 is also not so good.
+```
+
+```{r}
+plot(first_model$finalModel)
+
+# Normal Q-Q plot clearly shows that first linear model doesn’t satisfy linear model assumptions (normal Q-Q plot should be straight line).
+# Since the model seems bad, it will not be used in predicting new prices.
+```
+
+### 2nd Linear Regression Model
+<!-- Second model will introduce logarithmic transformations. Also, training data set will be filtered by price, so outliers are removed. -->
+```{r}
+learn= airbnb_train %>% filter(price < quantile(airbnb_train$price, 0.9) & price > quantile(airbnb_train$price, 0.1)) %>% tidyr::drop_na()
+second_model= lm(log(price) ~ room_type + neighbourhood_group + latitude + longitude
+                        + number_of_reviews + availability_365
+                       + reviews_per_month +
+                     calculated_host_listings_count + minimum_nights, data = learn)
+
+# Summarize the results
+summary(second_model)
+
+# This model is an improvement. Median residual error is now -0.0145, which is far better than -25.5 from the first model. R2=0.491 means that this model explains about 50% variance of target variable.
+# Q-Q plot for this model looks much better than the previous one.
+```
+
+```{r}
+plot(second_model)
+```
+
+### Predict prices for training set
+```{r}
+airbnb_test= airbnb_test %>% filter(price <= quantile(airbnb_train$price, 0.9) & price >= quantile(airbnb_train$price, 0.1)) %>% tidyr::drop_na()
+pred_regression= predict(second_model, newdata = airbnb_test)
+pred_regression= exp(pred_regression)
+
+RMSE_regression= sqrt(mean( (airbnb_test$price - pred_regression)**2 ))
+
+SSE= sum((airbnb_test$price - pred_regression)**2)
+SSR= sum((pred_regression - mean(airbnb_test$price)) ** 2)
+R2= 1 - SSE/(SSE + SSR)
+
+
+regression_results= tibble(
+  obs = airbnb_test$price,
+  pred = pred_regression,
+  diff = pred - obs,
+  abs_diff = abs(pred - obs),
+  neighbourhood = airbnb_test$neighbourhood,
+  name = airbnb_test$name,
+  group = airbnb_test$neighbourhood_group,
+  type = airbnb_test$room_type
+  
+)
+
+regression_plot= regression_results %>% 
+  ggplot(aes(obs, pred)) +
+geom_point(alpha = 0.1, aes(text = paste("Name:", name, "\nGroup:", group, "\nType:", type,
+                                           "\nPrice diff = ", diff))) +
+  th +
+  scale_x_log10() +
+  scale_y_log10() +
+  ggtitle("Observed vs predicted",
+          subtitle = "Linear regression model") + 
+  geom_abline(slope = 1, intercept = 0, color = "blue", linetype = 2)  +
+  facet_wrap(~type)
+```
+
+```{r}
+ggplotly(regression_plot)
+# Metrics for testing set: R2 = 0.43 and RMSE = 41.24
+```
+
+### Multiple Line Regression for price, longitude and, latitude
+```{r}
+model_mul1 = lm(price ~ longitude+latitude, data = airbnb)
+summary(model_mul1)
+```
+
+```{r}
+plot(model_mul1)
+```
+
+### Multiple Line Regression for price, number of reviews and availability for 365 days
+```{r}
+model_mul2 = lm(price ~ number_of_reviews+availability_365, data = airbnb)
+summary(model_mul2)
+```
+
+```{r}
+plot(model_mul2)
+```
+
+### Confidence Intervals for Model Parameters
+```{r}
+cat("\n","Simple:Line Regression","\n")
+confint(second_model, level=0.95)
+cat("\n","Multiple Line Regression for price, longitude and latitude:","\n")
+confint(model_mul1, level=0.95)
+cat("\n","Multiple Line Regression for price, number of reviews and availability for 365 days:","\n")
+confint(model_mul2, level=0.95)
+```
+
+# References
+<div id="refs">@R-Career;@R-Action;@R-Cran;@R-Material1;@R-Material2</div>
+
+# Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6010/Final_Projects/FinalProject/Capstone_ALY_6010_Abhilash_Dikshit.Rmd', documentation = 0)), eval = FALSE}
+```

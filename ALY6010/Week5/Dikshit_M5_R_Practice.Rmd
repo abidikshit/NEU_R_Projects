@@ -1,0 +1,165 @@
+---
+title: "R Practice – ALY 6010"
+subtitle: 'Module 5'
+author: "Abhilash Dikshit"
+date: "2022-12-11"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Projects/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+![](/Users/abidikshit/R_Projects/Images/NU.png)
+
+# Load libraries
+```{r}
+my_packages = c("plyr", "dplyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse", "gmodels", "corrgram", "moments", "corrplot", "ggpubr", "GGally", "knitr", "bruceR", "png", "grid", "ggimage","Hmisc")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```
+
+### Import dataset and show basic info after cleanup
+```{r}
+data = read.csv("/Users/abidikshit/R_Projects/Data/Module5Data.csv", header = T)
+data
+cat("Number of Rows before cleanup:", nrow(data), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns before cleanup:", ncol(data), "\n") 
+cat("Blank cells count before cleanup:", sum(!complete.cases(data))) # Displaying Blank Cells Count for uncleaned data
+```
+
+### Data cleanup
+```{r}
+# Rename column 
+names(data)[names(data) == 'time'] = 'Time'
+names(data)[names(data) == 'treatment'] = 'Treatment'
+names(data)[names(data) == 'smoker'] = 'Smoker'
+names(data)[names(data) == 'age'] = 'Age'
+names(data)[names(data) == 'outcome'] = 'Outcome'
+names(data)[names(data) == 'hrt_months'] = 'HormoneTherapy'
+names(data)[names(data) == 'wbc'] = 'WhiteBloodCells'
+# Delete 'NA' value, if exists
+data_new= na.omit(data)
+# Top and bottom 3 records
+headTail(data_new, top = 3, bottom = 3, ellipsis = F)
+cat("Number of Rows after cleanup:", nrow(data_new), "\n")
+cat("Number of Columns after cleanup:", ncol(data_new), "\n") 
+cat("Blank cells count after cleanup:", sum(!complete.cases(data_new)))
+```
+
+### Summary Of Dataset
+```{r}
+str(data_new) 
+summary(data_new, digits = 1)
+#describe(data_new)
+```
+
+### Part 1: Correlation Analysis
+<!-- Produce and export at least one correlation table or correlation chart. A correlation chart is diagnostic and should not be larger than 5 variables for reporting purposes. Why is this? Provide several sentences describing the key analytical findings. -->
+#### Shapiro-Wilk normality test
+<!-- H0= Data is normally distributed -->
+<!-- H1= Data is not normally distributed -->
+```{r}
+options(scipen = 100)
+shapiro.test(data_new$HormoneTherapy)
+shapiro.test(data_new$WhiteBloodCells)
+```
+
+### Analysis using Quantile-Quantile Plots
+```{r}
+#Q-Q Plot for HormoneTherapy
+qqnorm(data_new$HormoneTherapy)
+qqline(data_new$HormoneTherapy, col = "red", lwd = 2)
+
+#Q-Q Plot for WhiteBloodCells
+qqnorm(data_new$WhiteBloodCells)
+qqline(data_new$WhiteBloodCells, col = "red", lwd = 2)
+```
+
+### Preparing Correlation matrix for Hormone_more
+```{r}
+Hormone_more = data_new[(data_new$HormoneTherapy)>50,]
+matrix(data = Hormone_more, ncol = 1, byrow = F, dimnames = NULL)
+```
+
+### Preparing Correlation matrix for Hormone_less
+```{r}
+Hormone_less= data_new[(data_new$Smoker)<50,]
+matrix(data = Hormone_less, ncol = 1, byrow = F, dimnames = NULL)
+```
+
+### Visualizing the correlation matrix for Hormone > 50 and Hormone < 50
+```{r}
+M = cor(data_new[ ,4:8])
+palette = colorRampPalette(c("orange", "white", "blue")) (20)
+heatmap(x = M, col = palette, symm = T)
+# as pie
+corrplot(corr = cor(Hormone_more[ ,4:8]), method = "pie")
+# as pie
+corrplot(corr = cor(Hormone_less[ ,4:8]), method = "pie")
+```
+
+### Part 2: Regression table
+<!-- Produce and export at least one regression table. You may pick your own outcome and predictor variables. How does regression analysis differ from correlation analysis? Provide several sentences discussing the key results. -->
+#### Boxplots
+```{r}
+boxplot( data_new$HormoneTherapy ~ data_new$Smoker, 
+         main="Hormone Therapy ~ Smokers", xlab = "smoker", 
+         ylab = "Hormone Therapy ", 
+         col = "skyblue")
+
+boxplot( data_new$HormoneTherapy ~ data_new$Age, 
+         main="Hormone Therapy ~  Age", 
+         xlab = "Age", ylab = "Hormone Therapy ", 
+         col = "skyblue")
+```
+
+### Linear Regression 
+### Simple Line Regression
+```{r}
+regression1= lm(Hormone_more$Age ~ Hormone_more$Smoker, data = Hormone_more)
+summary(regression1)
+regression2= lm(Hormone_less$Age ~ Hormone_less$Smoker, data = Hormone_less)
+summary(regression2)
+```
+
+```{r}
+#install.packages("stargazer")
+library(stargazer)
+#Regression Table
+stargazer(regression1, type = "text")
+stargazer(regression2, type = "text")
+```
+
+```{r}
+
+```
+
+### Multiple Line Regression
+```{r}
+model_mul = lm(HormoneTherapy ~ WhiteBloodCells+Age, data = data_new)
+summary(model_mul)
+```
+
+### Confidence Intervals for Model Parameters
+```{r}
+cat("Simple:Line Regression 1","\n")
+confint(regression1, level=0.95)
+cat("\n","Simple:Line Regression 2","\n")
+confint(regression2, level=0.95)
+cat("\n","Multiple Line Regression:","\n")
+confint(model_mul, level=0.95)
+```
+
+```{r}
+plot(model_mul)
+```
+
+### References
+<div id="refs">@R-Career;@R-Action;@R-Cran;@R-Material1;@R-Material2</div>
+
+### Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6010/Week5/Dikshit_M5_R_Practice.Rmd', documentation = 0)), eval = FALSE}
+```

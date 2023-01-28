@@ -1,0 +1,149 @@
+---
+title: "Regression Modelling of State.x77 Dataset using R programming"
+subtitle: 'Week 1'
+author: "Group 1"
+date: "2023-01-21"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Projects/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+![](/Users/abidikshit/R_Projects/Images/NU.png)
+
+# Importing the libraries required for the analysis
+```{r}
+#install.packages("Rtools")
+#install.packages("car")
+#install.packages("leaps")
+library(car)
+library(leaps)
+library(ggplot2)
+library(dplyr)
+```
+
+# Understand and Examine the dataset
+```{r}
+?state.x77
+```
+```{r}
+summary(state.x77)
+```
+
+```{r}
+head(state.x77)
+```
+
+```{r}
+dim(state.x77)
+```
+
+
+# Create a Data Frame
+```{r}
+state.x77.df= data.frame(state.x77)
+state_data= data.frame(state.x77[,c("Population","Income","Illiteracy","Murder","Frost")])
+```
+
+# Analyzing the relationship among variables
+# Corrplot for numeric variables.
+```{r}
+sta= cbind(state.abb, state.x77.df, state.region)
+st = sta[, 2:9] # Take numeric variables as goal matrix
+library(ellipse) 
+library(corrplot)
+corMatrix <- cor(as.matrix(st)) # Calculate correlation matrix
+col <- colorRampPalette(c("red", "yellow", "blue"))  # 3 colors to represent coefficients -1 to 1.
+corrplot.mixed(corMatrix, order = "AOE", lower = "number", lower.col = "black", 
+               number.cex = .8, upper = "ellipse",  upper.col = col(10), 
+               diag = "u", tl.pos = "lt", tl.col = "black") # Mix plots of "number" and "ellipse"
+```
+
+# summary of the dataframe state_data
+```{r}
+summary(state_data)
+```
+
+# Model 1
+# Investigate the relationship between murder rate and other features by building a multiple linear regression model (Model #1)
+```{r}
+model1=lm(Murder~Population+Income+Illiteracy+Frost,data=state_data)
+summary(model1)
+```
+
+# Investigate the correlation among features and plot them (cor() function) ?
+```{r}
+cor(state_data)
+```
+
+#Scatterplotmatrix for state_data
+```{r}
+scatterplotMatrix(state_data,main="Scatterplot Matrix")
+```
+
+# Check for multicollinearity (vif() function
+```{r}
+vif(model1)
+```
+
+# Check for outliers (outlierTest() function)
+```{r}
+outlierTest(model1)
+```
+
+#  Modify the first regression model based on the outcomes of the previous stages (Model #2)
+```{r}
+model2=lm(formula = Murder ~ Population + Illiteracy, 
+    data = state_data)
+summary(model2)
+```
+
+# Diagnose both regression models by drawing the plots out of the model to specially check the normality, linearity, and existence of outliers (par() and plot() functions)
+
+# Model 1
+```{r}
+par(mfrow=c(2,2))
+plot(model1)
+```
+
+# Model 2
+```{r}
+par(mfrow=c(2,2))
+plot(model2)
+```
+
+# Based on the plots if necessary try a polynomial regression model
+```{r}
+polynomial_regression= lm(Murder~ Illiteracy +I(Illiteracy^2),data=state_data)
+
+par(mfrow=c(2,2))
+
+plot(polynomial_regression)
+```
+
+# Check the AIC values for two models (AIC() funcion)
+```{r}
+AIC(model1,model2)
+```
+
+# Use the all-subsets regression method to identify the "best" model. State the preferred model in equation form (regsubsets() and subsets() functions)
+```{r}
+best_model_state= regsubsets(Murder ~ Population+Illiteracy+Income+Frost,data =state_data, nbest = 4)
+plot(best_model_state, scale = "adjr2")
+```
+
+```{r}
+subsets(best_model_state,statistic = "cp",main="CP plot for finding the best possible model", 
+        legend = F, xlim= c(0,5), ylim = c(0,60))
+abline(1,1,lty=2,col= "blue")
+```
+
+# References
+<div id="refs">@R-Career;@R-Action;@R-Cran;@R-Material1;@R-Material2</div>
+
+# Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6015/Week1/Group1_Week1_ALY6015.Rmd', documentation = 0)), eval = FALSE}
+```

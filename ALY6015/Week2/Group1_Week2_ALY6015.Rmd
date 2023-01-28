@@ -1,0 +1,304 @@
+---
+title: "U.S. News and World Report's College Data"
+subtitle: 'Week 2'
+author: "Group 1"
+date: "2023-01-29"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Projects/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+![](/Users/abidikshit/R_Projects/Images/NU.png)
+
+# Importing the libraries required for the analysis
+```{r}
+# install.packages("ISLR")
+# install.packages("stats")
+# install.packages("pscl")
+# install.packages("AER")
+#install.packages("varImp")
+library(pscl)
+library(ggplot2)
+library(dplyr)
+library(ISLR)
+library(stats)
+library(psych) # Can be used for headTail function
+library(base)
+library(AER)
+library(varImp)
+```
+
+# Understand and Examine the dataset
+```{r}
+?College
+```
+
+```{r}
+headTail(College, top = 4, bottom = 4, ellipsis = F)
+```
+
+```{r}
+dim(College)
+cat("Number of Rows:", nrow(College), "\n")
+cat("Number of Columns:", ncol(College), "\n")
+cat("Blank cells count:", sum(!complete.cases(College)), "\n") # Displaying blank cells count 
+```
+
+```{r}
+summary(College)
+```
+
+```{r}
+pairs(College[,1:10], col = "skyblue")
+```
+
+# Use the plot() function to produce side-by-side boxplots of Outstate versus Private.
+```{r}
+attach(College)
+plot(Private, Outstate, col = "red", varwidth = T, xlab = "Private", ylab = "Outstate")
+```
+
+# Histograms with differing numbers of bins for a few of the quantitative variables
+```{r}
+# to divide the print window into four regions
+par(mfrow=c(3,2))
+# calling 4 histograms
+hist(Top10perc, col = 2)
+hist(Top25perc, col =7)
+hist(Grad.Rate, col = 3)
+hist(PhD, col = 4)
+hist(Terminal, col=8)
+hist(perc.alumni, col=10)
+```
+
+# Create Training and Test Samples
+```{r}
+#make this example reproducible
+set.seed(1)
+
+#Use 70% of dataset as training set and remaining 30% as testing set
+sample <- sample(c(TRUE, FALSE), nrow(College), replace=TRUE, prob=c(0.7,0.3))
+train <- College[sample, ]
+test <- College[!sample, ]  
+```
+
+# Fit the Logistic Regression Model 1
+```{r}
+#fit logistic regression model
+model1 <- glm(Private~., family="binomial", data=train)
+
+#disable scientific notation for model summary
+options(scipen=999)
+
+#view model summary
+summary(model1)
+```
+
+# Assessing Model Fit 1
+<!-- Values close to 0 indicate that the model has no predictive power. In practice, values over 0.40 indicate that a model fits the data very well. -->
+<!-- Model 1 -->
+```{r}
+pscl::pR2(model1)["McFadden"]
+```
+
+<!-- We can also compute the importance of each predictor variable in the model by using the varImp function from the caret package: -->
+<!-- Higher values indicate more importance. -->
+```{r}
+imp <- as.data.frame(caret::varImp(model1))
+imp <- data.frame(overall = imp$Overall,
+           names   = rownames(imp))
+imp_df = imp[order(imp$overall,decreasing = T),]
+imp_df
+```
+
+# Sorting to get top 5 varibles
+```{r}
+top5= head(imp_df, n=5)$names
+top5
+```
+
+#  Use the Model to Make Predictions
+<!-- The probability of Private College as “Yes” has a probability of defaulting of 0.7781821. Conversely, Private College as “No” has a probability of defaulting of 0.9932049.  -->
+```{r}
+#define two individuals
+new <- data.frame(Apps=4000, Accept= 1000, Enroll= 600, Top10perc= 5, Top25perc= 20, F.Undergrad = 2500, P.Undergrad= 6000,Outstate = 5000, Room.Board = 3000, Books= 800, Personal= 1500, PhD= 20, Terminal=15, S.F.Ratio= 6, perc.alumni= 15, Expend= 8000, Grad.Rate = 30, Elite= c("Yes", "No"), Elite.1= c("Yes", "No"))
+
+#predict probability of defaulting
+predict(model1, new, type="response")
+```
+
+```{r}
+#calculate probability of default for each individual in test dataset
+predicted <- predict(model1, test, type="response")
+```
+
+```{r}
+head(predicted)
+```
+
+# Model Diagnostics
+<!-- Installing InformationValue package -->
+```{r}
+devtools::install_github("selva86/InformationValue")
+```
+
+```{r}
+library(InformationValue)
+```
+
+# Lastly, we can analyze how well our model performs on the test dataset.
+<!-- This tells us that the optimal probability cutoff to use is 1. Thus, any individual with a probability of defaulting of 1 or higher will be predicted to default, while any individual with a probability less than this number will be predicted to not default. -->
+```{r}
+#convert defaults from "Yes" and "No" to 1's and 0's
+test$Private1 <- ifelse(test$Private=="Yes", 1, 0)
+
+#find optimal cutoff probability to use to maximize accuracy
+optimal <- optimalCutoff(test$Private1, predicted)[1]
+optimal
+```
+
+# Using this threshold, we can create a confusion matrix which shows our predictions compared to the actual defaults:
+```{r}
+confusionMatrix(test$Private1, predicted)
+```
+
+```{r}
+#calculate sensitivity
+sensitivity(test$Private1, predicted)
+
+#calculate specificity
+specificity(test$Private1, predicted)
+
+# calculate precision
+precision(test$Private1, predicted)
+
+#calculate total misclassification error rate
+misClassError(test$Private1, predicted, threshold=optimal)
+```
+
+#plot the ROC curve
+```{r}
+plotROC(test$Private1, predicted)
+```
+
+# Fit the Logistic Regression Model 2
+```{r}
+#fit logistic regression model
+model2 <- glm(Private~F.Undergrad+Outstate+S.F.Ratio+Grad.Rate, family="binomial", data=train)
+
+#disable scientific notation for model summary
+options(scipen=999)
+
+#view model summary
+summary(model2)
+```
+
+# Assessing Model Fit 2
+<!-- Values close to 0 indicate that the model has no predictive power. In practice, values over 0.40 indicate that a model fits the data very well. -->
+<!-- Model 2 -->
+```{r}
+pscl::pR2(model2)["McFadden"]
+```
+
+<!-- We can also compute the importance of each predictor variable in the model by using the varImp function from the caret package: -->
+<!-- Higher values indicate more importance. -->
+```{r}
+imp2 <- as.data.frame(caret::varImp(model2))
+imp2 <- data.frame(overall = imp2$Overall,
+           names   = rownames(imp2))
+imp_df2 = imp2[order(imp2$overall,decreasing = T),]
+imp_df2
+```
+
+# Sorting to get top 2 varibles
+```{r}
+top2= head(imp_df2, n=2)$names
+top2
+```
+
+#  Use the Model to Make Predictions
+```{r}
+#calculate probability of default for each individual in test dataset
+predicted2 <- predict(model2, test, type="response")
+```
+
+```{r}
+head(predicted2)
+```
+
+# Model Diagnostics
+# Lastly, we can analyze how well our model performs on the test dataset.
+<!-- This tells us that the optimal probability cutoff to use is 1. Thus, any individual with a probability of defaulting of 1 or higher will be predicted to default, while any individual with a probability less than this number will be predicted to not default. -->
+```{r}
+#convert defaults from "Yes" and "No" to 1's and 0's
+#test$Private <- ifelse(test$Private2=="Yes", 1, 0)
+
+#find optimal cutoff probability to use to maximize accuracy
+optimal <- optimalCutoff(test$Private1, predicted2)[1]
+optimal
+```
+
+# Using this threshold, we can create a confusion matrix which shows our predictions compared to the actual defaults:
+```{r}
+confusionMatrix(test$Private1, predicted2)
+```
+
+```{r}
+#calculate sensitivity
+sensitivity(test$Private1, predicted2)
+
+#calculate specificity
+specificity(test$Private1, predicted2)
+
+# calculate precision
+precision(test$Private1, predicted2)
+
+#calculate total misclassification error rate
+misClassError(test$Private1, predicted2, threshold=optimal)
+```
+
+#plot the ROC curve
+```{r}
+plotROC(test$Private1, predicted2)
+```
+
+# Compare two models with anova() and AIC() and interpret the results.
+### Perform the ANOVA test
+<!-- By looking at the resulted p-value i.e. 0.00001279, its evident that, model2 has significantly improved against the model1. -->
+```{r}
+anova(model1, model2, test='LR')
+```
+
+# Perform the AIC test
+```{r}
+AIC(model1, model2)
+```
+
+# Calculate Overdispersion
+<!-- No overdispersion as it is less than 1 -->
+```{r}
+deviance(model1)/df.residual(model1)
+```
+
+<!-- No overdispersion as it is less than 1 -->
+```{r}
+deviance(model2)/df.residual(model2)
+```
+
+
+<!-- The resulting p value (0.4917999) is clearly not significant (p> 0.05), strengthening our belief that there is no over dispersion. -->
+```{r}
+pchisq(summary(model2)$dispersion * model1$df.residual, model1$df.residual, lower = F)
+```
+
+
+# References
+<div id="refs">@R-Career;@R-Action;@R-Cran;@R-Material1;@R-Material2</div>
+
+# Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6015/Week2/Group1_Week2_ALY6015.Rmd', documentation = 0)), eval = FALSE}
+```

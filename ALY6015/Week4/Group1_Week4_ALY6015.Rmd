@@ -1,0 +1,188 @@
+---
+title: "Feature Selection Methods in R"
+subtitle: 'Week 4'
+author: "Group 1"
+date: "2023-02-12"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Projects/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+![](/Users/abidikshit/R_Projects/Images/NU.png)
+
+# load data 
+```{r}
+data('mtcars') 
+head(mtcars) 
+```
+
+```{r}
+?mtcars
+```
+
+# Training and Testing Data Split - random sample (70/30 split)
+```{r}
+set.seed(100)
+trainIndex <- sort(sample(x = nrow(mtcars), size = nrow(mtcars) * 0.7)) 
+sample_train <- mtcars[trainIndex,] 
+sample_test <- mtcars[-trainIndex,] 
+head(sample_train)
+head(sample_test)
+```
+
+# Descriptive Statistics for sample train dataset
+```{r}
+summary(sample_train)
+```
+
+# Exploratory Analysis
+<!-- 1. The distribution of outcome variable (mpg) is plotted using a histogram which suggests resemblance with normal distribution. -->
+<!-- 2.A boxplot of outcome variable (mpg) is plotted with am. It suggests manual transmission is better for mpg.  -->
+<!-- 3. A Pair plot is plotted for all the variables of the dataset. The Pair plot shows strong relationship between different variables and miles per gallon.  -->
+
+#Histogram of Mpg: The distribution of outcome variable (mpg) is plotted using a histogram which suggests resemblance with normal distribution.
+```{r}
+hist(sample_train$mpg,breaks = 10,xlab="MPG", col = "skyblue", xlim=c(5,35))
+```
+
+# PreProcessing: Let’s convert am into a categorical variable. 0 = AT(Automatic Transmission), 1 = MT(Manual Transmission)
+```{r}
+input<- sample_train
+input$am <- as.factor(input$am)
+levels(input$am) <-c("AT", "MT")
+```
+
+# Check car transmission count
+```{r}
+table(input$am)
+```
+
+# Check inout dataset dimension
+```{r}
+dim(input)
+```
+
+# Boxplot of mpg and am: A boxplot of outcome variable (mpg) is plotted with am. It suggests manual transmission is better for mpg.
+```{r}
+library(ggplot2)
+library(caret)
+ggplot(input, aes(x=am, y=mpg)) + geom_boxplot(fill="lightgreen")
+```
+
+# Plotting pairs for mtcars data: A Pair plot is plotted for all the variables of the dataset. The Pair plot shows strong relationship between different variables and miles per gallon
+```{r}
+pairs(mpg ~ ., data = sample_train, col= "red")
+```
+
+# # Multiple Regression
+# Stepwise selection method 
+<!-- Here is how to interpret the results: -->
+
+<!-- First, we fit the intercept-only model. -->
+<!-- Next, we added predictors to the model sequentially just like we did in forward-stepwise selection. However, after adding each predictor we also removed any predictors that no longer provided an improvement in model fit. -->
+<!-- We repeated this process until we reached a final model. -->
+<!-- The final model turns out to be: -->
+
+<!-- mpg ~ 9.62 – 3.92*wt + 1.23*qsec + 2.94*am -->
+
+<!-- Note that forward stepwise selection and both-direction stepwise selection produced the same final model while backward stepwise selection produced a different model. -->
+```{r}
+options(scipen = 100)
+model_step <- step(lm(mpg ~ ., data = mtcars), direction = 'both') 
+summary(model_step)
+```
+
+# Forward selection method 
+```{r}
+step(lm(mpg ~ 1, data = mtcars), direction = 'forward', scope = ~ disp + hp + drat + wt + qsec) 
+model_forward <- lm(formula = mpg ~ wt + hp, data = mtcars) 
+summary(model_forward) 
+```
+
+# Residual Plots and Diagnostics
+<!-- Plot analysis from left to right: 1) The residuals, distance of a point to the regression line, do not show a pattern as they have a random scatter about the dotted line. 2) The residuals in the Quantile/Quantile plot for the most part follow the line and can be assumed to be normally distributed, 3) The red line is fairly flat demonstrating homoschedasity, the residuals are not affected by explanatory variables, and 4) None of the residuals have a Cook’s distance of greater than 0.5. -->
+
+<!-- In conclusion, the type of car transmission that achieves better fuel efficiency is uncertain as other car attributes; horsepower, car weight and number of cylinders, may be a better indication of fuel efficiency. This model could be further refined through such techniques such as reducing any covariance between variables such as horsepower and number of cylinders or weight. -->
+```{r}
+par(mfrow=c(2,2))
+plot(model_step,pch=23,col="orange",cex=2.5,cex.lab=1.6,lwd=3)
+```
+
+# Model Comparison
+# Compare models with ANOVA 
+```{r}
+fit1 <- lm(formula = mpg ~ wt, data = mtcars) 
+fit2 <- lm(formula = mpg ~ wt + hp, data = mtcars) 
+anova(fit1, fit2)  
+```
+
+# Compare models with AIC 
+```{r}
+AIC(fit1, fit2) 
+```
+ 
+# Compare models with BIC 
+```{r}
+BIC(fit1, fit2) 
+```
+
+# Using the leaps package 
+```{r}
+library(leaps) 
+library(ISLR) 
+library(dplyr) 
+```
+
+# Review the data set 
+```{r}
+summary(Hitters) 
+Hitters <- Hitters %>% na.omit() 
+```
+
+# Best subsets with regsubsets
+```{r}
+best_subset = regsubsets(Salary ~ ., data = Hitters, nvmax = 19) 
+reg.summary <- summary(best_subset) 
+reg.summary 
+names(reg.summary) 
+```
+
+# Review evaluation metrics 
+```{r}
+reg.summary$cp 
+reg.summary$adjr2 
+reg.summary$bic 
+```
+
+# Best model by Cp, Adjusted R-Squared or BIC 
+```{r}
+which.min(reg.summary$cp) 
+which.max(reg.summary$adjr2) 
+which.min(reg.summary$bic) 
+```
+
+
+# Backward selection with regsubsets 
+```{r}
+backward = regsubsets(Salary ~ ., data = Hitters, method = "backward") 
+reg.summary <- summary(backward) 
+reg.summary 
+names(reg.summary) 
+```
+
+
+# Best model by Adjusted R-Squared 
+```{r}
+which.max(reg.summary$adjr2) 
+```
+
+# References
+<div id="refs">@R-Career;@R-Action;@R-Cran;@R-Material1;@R-Material2;@R-Material3</div>
+
+# Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6015/Week4/Group1_Week4_ALY6015.Rmd', documentation = 0)), eval = FALSE}
+```

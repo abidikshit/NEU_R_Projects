@@ -1,0 +1,133 @@
+---
+pdf_document: default
+author: "Group 1"
+date: "2023-02-11"
+output:
+  html_document: null
+  df_print: paged
+  pdf_document: default
+subtitle: Week 4
+title: "In class assignment"
+word_document: default
+bibliography: /Users/abidikshit/R_Projects/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+  ![](/Users/abidikshit/R_Projects/Images/NU.png)
+
+# print Student Name and roll number
+```{r}
+cat("Student Name: Abhilash Dikshit","\n")
+cat("Student Roll Number: 002702209")
+```
+
+# load data 
+```{r}
+data('ToothGrowth') 
+head(ToothGrowth) 
+```
+
+# Exploratory Data Analysis
+```{r}
+summary(ToothGrowth)
+nrow(ToothGrowth)
+ncol(ToothGrowth)
+names(ToothGrowth)
+```
+
+```{r}
+library(GGally)
+ggpairs(ToothGrowth)
+```
+
+# 2. Comparing tooth growth by supp and dose using statistical tests
+<!-- The below boxplot suggests a difference in the effect on length of supplement. -->
+```{r}
+library(plotly)
+par(mfrow=c(2,3))
+plot_ly(data=ToothGrowth, x=~supp, y=~len, type="box")
+```
+
+# Change ‘dose’ from numerical variable to factor variable
+```{r}
+ToothGrowth$dose = factor(ToothGrowth$dose, levels=c(0.5,1.0,2.0),labels=c("low","med","high"))   
+```
+
+```{r}
+str(ToothGrowth)
+```
+
+# Replication
+```{r}
+replications(len ~ supp * dose, data=ToothGrowth)
+```
+
+```{r}
+replications(len ~ supp * dose, data=ToothGrowth[1:58,])
+```
+
+```{r}
+aggregate(ToothGrowth$len, by=list(ToothGrowth$supp,ToothGrowth$dose), FUN = mean)
+aggregate(ToothGrowth$len, by=list(ToothGrowth$supp,ToothGrowth$dose), FUN = sd)
+
+dose <- factor(ToothGrowth$dose)
+fit <- aov(ToothGrowth$len ~ ToothGrowth$supp*ToothGrowth$dose)
+summary(fit)
+```
+
+```{r}
+dose <- factor(dose)
+fit <- aov(ToothGrowth$len ~ ToothGrowth$supp*ToothGrowth$dose)
+summary(fit)
+```
+
+# Graphical Explanation
+# Box Plot
+```{r}
+ boxplot(len ~ supp * dose, data=ToothGrowth, ylab="Tooth Length", main="Boxplots of Tooth Growth Data", col= "skyblue")
+```
+
+# Interaction Plot
+```{r}
+with(ToothGrowth, interaction.plot(x.factor=dose, trace.factor=supp,response=len, fun=mean, type="b", legend=T,ylab="Tooth Length", main="Interaction Plot",pch=c(1,19)))
+```
+
+# Conditional Plot
+```{r}
+coplot(len ~ dose | supp, data=ToothGrowth, panel=panel.smooth,xlab="ToothGrowth data: length vs dose, given type of supplement", col= "red")
+```
+
+# Using model.tables() function
+<!-- Another way to get similar information is to use the model.tables( ) function, but the ANOVA has to be run first and saved into a model object. -->
+```{r}
+aov.out = aov(len ~ supp * dose, data=ToothGrowth)
+```
+
+<!-- The model formula specifies “length as a function of supplement and dose with all possible interactions between the factors. Now we can look at some model tables. -->
+```{r}
+model.tables(aov.out, type="means", se=T)
+```
+
+```{r}
+summary(aov.out)
+```
+
+#Treatment Contrasts
+<!-- check to make sure we’re getting treatment contrasts$contrasts -->
+```{r}
+options("contrasts")
+```
+
+```{r}
+summary.lm(aov.out)
+```
+
+# Conclusion of the Hypothesis Testing
+The mean of the OJ-low cell: We find this mean to be significantly different from zero, not an especially interesting result. The next line of the table, “suppVC”, shows the difference between the means of the VC-low cell and the OJ-low cell. 
+
+The standard error is for the difference between these means, so the difference is found to be significant. The “dosemed” line shows the difference between the means of the OJ-med cell and the OJ-low cell, and once again this difference is found to be statistically significant. The “dosehigh” line shows the difference in means between the OJ-high cell and the OJ-low cell, also significant. The last two lines test various elements of the interaction. 
+
+# Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6015/ClassAssignment/InclassAssignment.Rmd', documentation = 0)), eval = FALSE}
+```
+

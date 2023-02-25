@@ -31,7 +31,7 @@ Exploratory Data Analysis, Regression Modelling, Data mining Using R Language
 - [ALY6015](ALY6015)
 
 ## License
-[MIT-LICENSE.md](LICENSE.md)
+[LICENSE](LICENSE)
 
 <p align="center">
   <img width="100" height="100" src="/Images/NuLogo.png">

@@ -1,0 +1,102 @@
+---
+title: "Practice1"
+subtitle: 'Week1'
+author: "Group 7"
+date: "2023-03-06"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Projects/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+
+![](/Users/abidikshit/R_Projects/Images/NU.png)
+
+## Load libraries
+```{r}
+my_packages = c("shiny")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```
+
+```{r}
+?shiny
+```
+
+```{r}
+runExample("01_hello") 
+```
+
+```{r}
+# Define UI for app that draws a histogram ---- 
+ui <- fluidPage( 
+ 
+  # App title ---- 
+  titlePanel("Hello Shiny!"), 
+ 
+  # Sidebar layout with input and output definitions ---- 
+  sidebarLayout( 
+ 
+    # Sidebar panel for inputs ---- 
+    sidebarPanel( 
+ 
+      # Input: Slider for the number of bins ---- 
+      sliderInput(inputId = "bins", 
+                  label = "Number of bins:", 
+                  min = 10, 
+                  max = 100, 
+                  value = 30) 
+ 
+    ), 
+ 
+    # Main panel for displaying outputs ---- 
+    mainPanel( 
+ 
+      # Output: Histogram ---- 
+      plotOutput(outputId = "distPlot") 
+ 
+    ) 
+  ) 
+) 
+```
+
+```{r}
+# Define server logic required to draw a histogram ---- 
+server <- function(input, output) { 
+ 
+  # Histogram of the Old Faithful Geyser Data ---- 
+  # with requested number of bins 
+  # This expression that generates a histogram is wrapped in a call 
+  # to renderPlot to indicate that: 
+  # 
+  # 1. It is "reactive" and therefore should be automatically 
+  #    re-executed when inputs (input$bins) change 
+  # 2. Its output type is a plot 
+  output$distPlot <- renderPlot({ 
+ 
+    x    <- faithful$waiting 
+    bins <- seq(min(x), max(x), length.out = input$bins + 1) 
+ 
+    hist(x, breaks = bins, col = "coral", border = "black", 
+         xlab = "Waiting time to next eruption (in mins)", 
+         main = "Histogram of waiting times") 
+ 
+    }) 
+ 
+}
+```
+
+```{r}
+shinyApp(ui = ui, server = server) 
+```
+
+## References
+<div id="refs">@R-Career;@R-Action</div>
+
+## Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6070/Week1/ALY6070_G7_Week1_Crypto_btc.Rmd', documentation = 0)), eval = FALSE}
+```
+

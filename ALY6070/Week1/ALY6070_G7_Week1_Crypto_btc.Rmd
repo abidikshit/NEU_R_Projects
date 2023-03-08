@@ -1,0 +1,163 @@
+---
+title: "ALY6070: Cryptocurrency Prices and Valuations: Bitcoin"
+subtitle: 'Week1'
+author: "Group 7"
+date: "2023-03-06"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+bibliography: /Users/abidikshit/R_Projects/bibliography.bib
+biblio-style: apalike
+link-citations: yes
+---
+
+![](/Users/abidikshit/R_Projects/Images/NU.png)
+
+## Load libraries
+```{r}
+my_packages = c("plyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse","dplyr","lubridate","readr","caret")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```
+
+# PART 1: Select your Dataset 
+## Load dataset
+```{r}
+#Dataset used from https://coinmetrics.io/community-network-data/
+bitcoin <- read.csv("/Users/abidikshit/R_Projects/Data/coin_Bitcoin.csv", header = T)
+cat("Number of Rows before cleanup:", nrow(bitcoin), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns before cleanup:", ncol(bitcoin), "\n") 
+cat("Blank cells count before cleanup:", sum(!complete.cases(bitcoin))) # Displaying Blank Cells Count for uncleaned data
+```
+
+## Convert date column to Date format
+```{r}
+bitcoin$Date <- as.Date(bitcoin$Date)
+```
+
+```{r}
+headTail(bitcoin, top = 4, bottom = 4, ellipsis = F)
+```
+
+```{r}
+summary(bitcoin)
+```
+
+# PART 2: Explore your data features with different types of graphs in R 
+## Now, let's create different types of graphs to explore the data features:
+```{r}
+ggplot(bitcoin, aes(x = Date, y = Close)) + geom_line() + xlab("Date") + ylab("Close Price (USD)") + ggtitle("Bitcoin Price Trend Over Time")
+```
+
+## Histogram - to show the distribution of Bitcoin closing prices:
+```{r}
+ggplot(bitcoin, aes(x = Close)) + geom_histogram(binwidth = 50) + xlab("Close Price (USD)") + ylab("Frequency") + ggtitle("Histogram of Bitcoin Closing Prices")
+```
+
+## Box plot - to show the distribution of Bitcoin closing prices by year:
+```{r}
+bitcoin$Year <- year(bitcoin$Date)
+ggplot(bitcoin, aes(x = Year, y = Close)) + geom_boxplot() + xlab("Year") + ylab("Close Price (USD)") + ggtitle("Box Plot of Bitcoin Closing Prices by Year")
+```
+
+## Scatter plot - to show the relationship between Bitcoin closing prices and trading volume:
+```{r}
+ggplot(bitcoin, aes(x = Close, y = Volume, colour = Date)) + 
+  geom_point() + 
+  xlab("Close Price (USD)") + 
+  ylab("Trading Volume") + 
+  ggtitle("Scatter Plot of Bitcoin Closing Prices and Trading Volume") + 
+  scale_color_viridis_c() +
+  guides(colour = guide_legend(title = "Date")) +
+  geom_smooth(method="lm", se=FALSE, color="blue")
+```
+
+## Bar chart - to show the total trading volume of Bitcoin by year:
+```{r}
+total_volume <- aggregate(Volume ~ Year, data = bitcoin, sum)
+mean_volume <- mean(total_volume$Volume)
+
+ggplot(total_volume, aes(x = reorder(Year, -Volume), y = Volume)) + 
+  geom_bar(stat = "identity", fill = "steelblue") + 
+  xlab("Year") + 
+  ylab("Total Trading Volume") + 
+  ggtitle("Total Trading Volume of Bitcoin by Year") +
+  geom_text(aes(label = format(Volume, big.mark = ",")), vjust = -0.5) +
+  geom_hline(yintercept = mean_volume, linetype = "dashed", color = "coral") +
+  annotate("text", x = Inf, y = mean_volume, vjust = -1, hjust = 1, label = paste0("Mean: $", format(mean_volume, big.mark = ","))) +
+  geom_text(aes(label = "Mean Volume"), hjust = 1.5, color = "red", size = 3) +
+  theme_classic()
+
+```
+
+#PART 3:Run a PCA approach in R to do a feature reduction 
+
+## Let's run a Principal Component Analysis (PCA) approach in R to do a feature reduction on the cryptocurrency price history dataset.First, let's load the dataset and prepare it for PCA. We will use the dataset, and select only the Open, High, Low, Close, Volume, and Marketcap columns:
+```{r}
+bitcoin_pca <- read_csv("/Users/abidikshit/R_Projects/Data/coin_Bitcoin.csv", col_types = cols_only(Date = col_date(), Open = col_double(), High = col_double(), Low = col_double(), Close = col_double(), Volume = col_double(), Marketcap = col_double()))
+bitcoin_pca <- bitcoin_pca[,c(2:7)]
+```
+
+## Next, we will scale the data to have zero mean and unit variance:
+```{r}
+scaled_bitcoin <- scale(bitcoin_pca)
+```
+
+## Now, we can run the PCA using the prcomp() function:
+```{r}
+pca_bitcoin <- prcomp(scaled_bitcoin, scale = TRUE)
+```
+
+## We can now explore the results of the PCA, starting with the summary of the PCA object:
+```{r}
+summary(pca_bitcoin)
+```
+
+## This shows us that the first principal component (PC1) explains 66.33% of the variance in the data, while the second principal component (PC2) explains 14.52% of the variance, and so on. We can also plot a scree plot to visualize the proportion of variance explained by each principal component:
+```{r}
+scree_plot <- ggplot(data.frame(PC = 1:6, Variance = pca_bitcoin$sdev^2 / sum(pca_bitcoin$sdev^2)), aes(x = PC, y = Variance)) + geom_bar(stat = "identity", fill = "steelblue") + geom_line(aes(x = PC, y = cumsum(Variance)), color = "red") + xlab("Principal Component") + ylab("Proportion of Variance") + ggtitle("Scree Plot of Bitcoin Price History Dataset")
+scree_plot
+```
+
+## Finally, we can extract the principal components using the predict() function:
+## We can then use these principal components for further analysis or modeling.
+```{r}
+pcs_bitcoin <- predict(pca_bitcoin, scaled_bitcoin)
+```
+
+## Plot the cumulative variance plot
+```{r}
+# Create the cumulative variance plot
+cumulative_variance <- cumsum(pca_bitcoin$sdev^2 / sum(pca_bitcoin$sdev^2))
+plot(cumulative_variance, xlab = "Number of components", ylab = "Cumulative variance", 
+     type = "b", pch = 19, col = "blue", ylim = c(0,1))
+
+# Add a dashed line at the 95% variance threshold
+abline(h = 0.95, lty = 2, col = "red")
+
+# Add a vertical line at the optimal number of components
+optimal_components <- which.max(cumulative_variance >= 0.95)
+abline(v = optimal_components, lty = 2, col = "green")
+
+# Add text labels for the variance threshold and optimal number of components
+text(optimal_components, 0.97, paste0("Optimal components: ", optimal_components), pos = 3)
+text(length(cumulative_variance)*0.75, 0.97, "95% variance threshold", pos = 3, col = "red")
+
+```
+
+
+```{r}
+# Choose the number of components
+n_components <- length(which(cumsum(pca_bitcoin$sdev^2 / sum(pca_bitcoin$sdev^2)) < 0.8)) + 1
+cat("Number of components:", n_components, "\n")
+```
+
+## References
+<div id="refs">@R-Career;@R-Action</div>
+
+## Appendix
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6070/Week1/ALY6070_G7_Week1_Crypto_btc.Rmd', documentation = 0)), eval = FALSE}
+```
+

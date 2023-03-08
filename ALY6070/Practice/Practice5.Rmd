@@ -1,0 +1,102 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## Load libraries
+```{r}
+my_packages = c("shiny","datasets")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```
+
+```{r}
+Crypto <- read.csv("/Users/abidikshit/R_Projects/Data/coin_Bitcoin.csv")
+head(Crypto)
+```
+
+```{r}
+# Data pre-processing ----
+# Tweak the "am" variable to have nicer factor labels -- since this
+# doesn't rely on any user inputs, we can do this once at startup
+# and then use the value throughout the lifetime of the app
+
+# mpgData <- mtcars
+# mpgData$am <- factor(mpgData$am, labels = c("Automatic", "Manual"))
+
+
+# Define UI for miles per gallon app ----
+Crypto <- read.csv("/Users/abidikshit/R_Projects/Data/coin_Bitcoin.csv")
+
+ui <- fluidPage(
+
+  # App title ----
+  titlePanel("Cryto King"),
+
+  # Sidebar layout with input and output definitions ----
+  sidebarLayout(
+
+    # Sidebar panel for inputs ----
+    sidebarPanel(
+
+      # Input: Selector for variable to plot against mpg ----
+      selectInput("variable", "Variable:",
+                  c("SNo" = "SNo",
+                    "Symbol" = "Symbol",
+                    "Name" = "Name",
+                    "Marketcap" = "Marketcap",
+                    "High" = "High",
+                    "Low" = "Low",
+                    "Open" = "Open",
+                    "Close" = "Close",
+                    "Date" = "Date")),
+
+      # Input: Checkbox for whether outliers should be included ----
+      checkboxInput("outliers", "Show outliers", TRUE)
+
+    ),
+
+    # Main panel for displaying outputs ----
+    mainPanel(
+
+      # Output: Formatted text for caption ----
+      h3(textOutput("caption")),
+
+      # Output: Plot of the requested variable against mpg ----
+      plotOutput("Cryptoplot")
+
+    )
+  )
+)
+
+# Define server logic to plot various variables against mpg ----
+server <- function(input, output) {
+
+  # Compute the formula text ----
+  # This is in a reactive expression since it is shared by the
+  # output$caption and output$mpgPlot functions
+  formulaText <- reactive({
+    paste("Marketcap ~", input$variable)
+  })
+
+  # Return the formula text for printing as a caption ----
+  output$caption <- renderText({
+    formulaText()
+  })
+
+  # Generate a plot of the requested variable against mpg ----
+  # and only exclude outliers if requested
+  output$Cryptoplot <- renderPlot({
+    boxplot(as.formula(formulaText()),
+            data = Crypto,
+            outline = input$outliers,
+            col = "#75AADB", pch = 19)
+  })
+
+}
+
+# Create Shiny app ----
+shinyApp(ui, server)
+```
+
+

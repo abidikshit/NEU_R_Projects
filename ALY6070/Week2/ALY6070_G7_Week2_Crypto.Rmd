@@ -1,5 +1,5 @@
 ---
-title: "ALY6070: Lasso and Random Forest technique on Cryptocurrencies."
+title: "ALY6070: Random Forest & Lasso technique on Cryptocurrencies."
 subtitle: 'Week2'
 author: "Group 7"
 date: "2023-03-11"
@@ -17,7 +17,7 @@ link-citations: yes
 
 ## Load libraries
 ```{r}
-my_packages = c("plyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse","dplyr","lubridate","readr","caret")
+my_packages = c("plyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse","dplyr","lubridate","readr","caret","caTools","glmnet","randomForest")
 #install.packages(my_packages)
 lapply(my_packages, require, character.only = T)
 ```
@@ -25,29 +25,116 @@ lapply(my_packages, require, character.only = T)
 # PART 1: Select your Dataset 
 ## Load dataset
 ```{r}
-crypto <- read.csv("/Users/abidikshit/R_Projects/Data/crypto.csv", header = T)
-cat("Number of Rows before cleanup:", nrow(crypto), "\n") # Printing string and variable row count on the same line
-cat("Number of Columns before cleanup:", ncol(crypto), "\n") 
-cat("Blank cells count before cleanup:", sum(!complete.cases(crypto))) # Displaying Blank Cells Count for uncleaned data
+crypto_data <- read.csv("/Users/abidikshit/R_Projects/Data/crypto.csv", header = T)
+cat("Number of Rows before cleanup:", nrow(crypto_data), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns before cleanup:", ncol(crypto_data), "\n") 
+cat("Blank cells count before cleanup:", sum(!complete.cases(crypto_data))) # Displaying Blank Cells Count for uncleaned data
 ```
 
 ## Convert date column to Date format
 ```{r}
-crypto$Date <- as.Date(crypto$Date)
+crypto_data$Date <- as.Date(crypto_data$Date)
+```
+
+## Head and Tail of the dataset
+```{r}
+headTail(crypto_data, top = 4, bottom = 4, ellipsis = F)
+```
+
+## Summary and structure of dataset
+```{r}
+summary(crypto_data)
+str(crypto_data)
+```
+
+# Assignment
+## Implement Random Forest variable importance and Lasso feature reduction technique on your own dataset.Write a report with screenshots of your observations. Compare the observations based on constructed plots and results.
+
+# Approach 1:LASSO Regularization Technique (first) + Random Forest (second)
+## Our goal is to gain insights into the relationships between the features in our dataset, hence we are starting with Lasso to identify the most important features and then use Random Forest to explore how these features interact with each other.
+
+# Approach 2: Random Forest (first) + LASSO Regularization Technique (second)
+## If the goal is to build a predictive model based on our crypto dataset, then we could have started with Random Forest to explore the importance of different features and identify potential non-linear relationships. After that, we could use Lasso to further refine the model and select the most important features.
+
+# Selecting Approach 1: LASSO Regularization Technique + Random Forest
+# Approach 1.a LASSO
+## Separate the target variable ("Class") from the predictors:
+```{r}
+class <- crypto_data$Class
+predictors <- crypto_data[, -ncol(crypto_data)]
+```
+
+## Split the data into training and testing sets(80:20):
+```{r}
+set.seed(123)
+train <- sample(nrow(crypto_data), nrow(crypto_data) * 0.8)
+crypto_train <- crypto_data[train, ]
+crypto_test <- crypto_data[-train, ]
 ```
 
 ```{r}
-headTail(crypto, top = 4, bottom = 4, ellipsis = F)
+headTail(crypto_train, top = 4, bottom = 4, ellipsis = F)
+headTail(crypto_test, top = 4, bottom = 4, ellipsis = F)
+```
+
+## Perform Lasso:
+<!-- Note: In this example, we set alpha = 1 to perform Lasso. If you want to perform Ridge regression, you can set alpha = 0. If you want to perform Elastic Net, you can set alpha to a value between 0 and 1. -->
+```{r}
+# Perform Lasso
+x_train <- model.matrix(Close ~ ., data = crypto_train)[,-1]
+y_train <- crypto_train$Close
+
+x_test <- model.matrix(Close ~ ., data = crypto_test)[,-1]
+y_test <- crypto_test$Close
+
+fit <- glmnet(x_train, y_train, alpha = 1)
+```
+
+## Evaluate the model
+<!-- we used cross-validation to select the best lambda value. We then used this value to make predictions on the test set. -->
+```{r}
+plot(fit, xvar = "lambda", label = TRUE)
+```
+
+<!-- plot(fit, xvar = "lambda", label = TRUE, main = "Lasso Path", col = rainbow(ncol(x))[1:ncol(x)], lwd = 2, xlim = c(max(fit$lambda), min(fit$lambda)), xlab = "Log Lambda", ylab = "Coefficient", cex.lab = 1.2, cex.main = 1.5) -->
+## Select the best lambda using cross-validation
+```{r}
+cv_fit <- cv.glmnet(x_train, y_train, alpha = 1)
+best_lambda <- cv_fit$lambda.min
+```
+
+## Make predictions on the test set
+```{r}
+predictions <- predict(fit, newx = x_test, s = best_lambda)
 ```
 
 ```{r}
-summary(crypto)
+summary(predictions)
+```
+
+## Plot the Lasso predictions against the actual values
+```{r}
+plot(y_test, predictions, pch = 20, cex = 0.7, xlab = "Actual Close Price", ylab = "Predicted Close Price")
+abline(a = 0, b = 1, col = "red")
+```
+
+## Approach 1.b: Random Forest
+<!-- The formula Close ~ . specifies that we want to predict the Close variable using all the other variables in the dataset. -->
+```{r}
+# Perform Random Forest
+rf <- randomForest(Close ~ ., data = crypto_train)
+```
+
+# Print the variable importance
+<!-- Finally, we use the varImpPlot function to plot the variable importance. This function takes the Random Forest model (rf) as its argument and generates a plot of the variable importance scores. -->
+```{r}
+varImpPlot(rf, main = "Variable Importance Plot", type = 2, col = "coral")
 ```
 
 ## References
 <div id="refs">@R-Career;@R-Action</div>
 
 ## Appendix
-```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6070/Week1/ALY6070_G7_Week2_Crypto.Rmd', documentation = 0)), eval = FALSE}
+```{r code=readLines(knitr::purl('/Users/abidikshit/R_Projects/ALY6070/Week2/ALY6070_G7_Week2_Crypto.Rmd', documentation = 0)), eval = FALSE}
 ```
 

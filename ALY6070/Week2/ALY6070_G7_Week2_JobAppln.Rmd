@@ -127,7 +127,10 @@ ui <- fluidPage(theme = shinytheme("lumen"),
     ),
       
       # terms and condition 
-      checkboxInput("terms", "I agree to the terms and conditions."),
+      # checkboxInput("terms", "I agree to the terms and conditions."),
+      checkboxInput("terms", HTML(paste("I agree to the ", 
+        a("terms and conditions", href = "https://github.com/abidikshit/R_Projects/blob/main/ALY6070/Week2/terms-and-conditions.html")))),
+
     
       actionButton("submit", "Submit"),
       textOutput("status")

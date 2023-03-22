@@ -1,0 +1,92 @@
+---
+title: "ALY6070:Airbnb New York Analysis (2011 - 2019)"
+subtitle: "Week 3"
+author: "Group 7"
+date: "2023-03-19"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+runtime: shiny
+---
+
+## Load libraries
+<!-- First, let's install and load the necessary packages - shiny, leaflet, and dplyr -->
+```{r}
+my_packages = c("plyr", "plotly", "ggplot2", "psych", "tidyr", "tidyverse","dplyr","lubridate","readr","caret","caTools","glmnet","shiny","shinyvalidate","shinyWidgets","shinythemes","tippy","shinyjs","leaflet","mapview")
+#install.packages(my_packages)
+lapply(my_packages, require, character.only = T)
+```   
+
+### Import the file *AB_NYC_2019.csv*
+<!-- Next, we need to read the AB_NYC_2019.csv dataset into our Shiny app. For this, we can use the read.csv function. -->
+```{r}
+airbnb_unclean = read.csv("~/R_Projects/Data/AB_NYC_2019.csv")
+print('Uncleaned Dataframe Info:')
+cat("Number of Rows:", nrow(airbnb_unclean), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns:", ncol(airbnb_unclean), "\n") 
+cat("Blank cells count:", sum(!complete.cases(airbnb_unclean))) # Displaying Blank Cells Count from the original data frame
+headTail(airbnb_unclean, top = 3, bottom = 3, ellipsis = F)
+```
+
+### Dataframe Cleanup
+```{r}
+airbnb_sort= airbnb_unclean[order(-airbnb_unclean$price),] # Sorted dataframe with descending price
+
+print('Removed Blank cells:')
+airbnb_modified = na.omit(airbnb_sort)
+
+print('Resized dataframe:')
+airbnb = airbnb_modified[26892:22003,] # Remove the top 55 % and bottom 45%
+cat("Number of Rows:", nrow(airbnb), "\n")
+cat("Number of Columns:", ncol(airbnb), "\n")
+cat("Blank cells count in cleaned dataframe:", sum(!complete.cases(airbnb)), "\n") # Displaying blank cells count after removal
+headTail(airbnb, top = 3, bottom = 3, ellipsis = F) # Cleaned Dataframe
+```
+
+## Now, we can create our Shiny app UI and server functions. In the UI function, we will create a leafletOutput object to display the choropleth map, and sliders to allow the user to filter the data based on the price and minimum_nights columns. -->
+```{r}
+ui <- fluidPage(
+  titlePanel("Airbnb Listings in New York City"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("price_slider", "Filter by Price", min = 0, max = 1000, value = c(0, 500)),
+      sliderInput("min_nights_slider", "Filter by Minimum Nights", min = 1, max = 30, value = c(1, 7))
+    ),
+    mainPanel(
+      leafletOutput("map")
+    )
+  )
+)
+
+```
+
+
+## In the server function, we will filter the airbnb based on the user's selected price and minimum nights values, and create a leaflet object with a choropleth layer to display the data on a map.
+```{r}
+server <- function(input, output) {
+  
+  filtered_data <- reactive({
+    airbnb %>%
+      filter(price >= input$price_slider[1] & price <= input$price_slider[2] & minimum_nights >= input$min_nights_slider[1] & minimum_nights <= input$min_nights_slider[2])
+  })
+  
+  output$map <- renderLeaflet({
+    leaflet(filtered_data()) %>%
+      addTiles() %>%
+      setView(lng = -73.987056, lat = 40.727248, zoom = 11) %>%
+      addProviderTiles("CartoDB.Positron") %>%
+      addMarkers(lng = ~longitude, lat = ~latitude, popup = ~name)
+  })
+}
+
+```
+
+## Finally, we can run the Shiny app using the shinyApp function. -->
+<!-- This will open a Shiny app in web browser, where we can use the sliders to filter the Airbnb data based on price and minimum nights, and view the filtered data on a choropleth map of New York City. -->
+```{r}
+shinyApp(ui, server)
+```
+
+

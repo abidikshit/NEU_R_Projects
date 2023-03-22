@@ -1,14 +1,8 @@
 ![](/Images/NU.png)
 ## R Projects
 
-## Contributors:
-- Abhilash Dikshit
-- Siddharth Alashi
-- Smit Parmar
-- Mrityunjay Gupta
-
 ## Project Details
-Exploratory Data Analysis, Regression Modelling, Data mining Using R Language 
+Analysis on Data Using R Language
 
 ### Documents:
 - [Elementary Statistics- By Allan G Bluman](/Documents/Elementary-Statistics-A-Step-By-Step-Approach-Allan-G.-Bluman.pdf)
@@ -29,6 +23,8 @@ Exploratory Data Analysis, Regression Modelling, Data mining Using R Language
 - [ALY6000](ALY6000)
 - [ALY6010](ALY6010)
 - [ALY6015](ALY6015)
+- [ALY6050](ALY6050)
+- [ALY6070](ALY6070)
 
 ## License
 [LICENSE](LICENSE)

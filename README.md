@@ -1,5 +1,6 @@
-![](/Images/R_logo.png)
-## R Projects
+<p align="center">
+  <img width="100" height="100" src="/Images/R_logo.png">
+</p>
 
 ## Project Details
 Analysis on Data Using R Language

@@ -45,6 +45,16 @@ cat("Blank cells count in cleaned dataframe:", sum(!complete.cases(airbnb)), "\n
 headTail(airbnb, top = 3, bottom = 3, ellipsis = F) # Cleaned Dataframe
 ```
 
+```{r}
+# Load data.table package
+library(data.table)
+```
+
+```{r}
+# Write to CSV file
+fwrite(airbnb, "~/R_Projects/Data/airbnb.csv")
+```
+
 ## Now, we can create our Shiny app UI and server functions. In the UI function, we will create a leafletOutput object to display the choropleth map, and sliders to allow the user to filter the data based on the price and minimum_nights columns. -->
 ```{r}
 ui <- fluidPage(

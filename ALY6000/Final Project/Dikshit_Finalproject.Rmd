@@ -132,6 +132,14 @@ library(ggmap)
 # qmplot(longitude, latitude, data = airbnb, geom = "point", color = price, main = "Cleaned Data: Density of Latitude and Longitude") + facet_wrap(~ room_type)
 ```
 
+```{r}
+mapview(airbnb_unclean, xcol = "longitude", ycol = "latitude", crs = 4326, grid = FALSE) # coordinate reference system (crs)
+```
+
+```{r}
+qmplot(longitude, latitude, data = airbnb, geom = "point", color = price, main = "Cleaned Data: Density of Latitude and Longitude") + facet_wrap(~ room_type)
+```
+
 ## Reviews In Specific Years Based On Room Types By Adding Extra Column *Review_Year*
 ```{r}
 airbnb$Review_Year = substr(airbnb$last_review,1,4) # Added Column "Review Year"

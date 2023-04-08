@@ -1,0 +1,414 @@
+---
+title: 'ALY6070: Final Project'
+subtitle: 'Airbnb New York Analysis (2011 - 2019)'
+author: "Abhilash Dikshit"
+date: "2023-04-03"
+bibliography: /Users/abidikshit/R_Language/bibliography.bib
+biblio-style: "apalike"
+link-citations: true
+output:
+  
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+# R Code Approach
+### Importing packages: *FSA, FSAdata, magrittr, dplyr, tidyr, plyr and tidyverse*
+```{r}
+# install.packages("plyr")   # Import Libraries
+# install.packages("dplyr")
+# install.packages("tidyr")
+# install.packages("tidyverse")
+# install.packages("psych")
+# install.packages("ggpubr")
+# install.packages("ggplot2")
+# install.packages("scales")
+
+library(plyr) 
+library(dplyr)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(tidyverse)
+library(psych)
+library(moments)
+library(scales)
+```
+
+### Import the file *AB_NYC_2019.csv* and show basic info
+```{r}
+airbnb = read.csv("~/R_Projects/Data/airbnb.csv")
+cat("Number of Rows:", nrow(airbnb), "\n") # Printing string and variable row count on the same line
+cat("Number of Columns:", ncol(airbnb), "\n") 
+cat("Blank cells count:", sum(!complete.cases(airbnb))) # Displaying Blank Cells Count from the original data frame
+headTail(airbnb, top = 3, bottom = 3, ellipsis = F)
+```
+
+## Bar chart showing the distribution Of Room Types In New York City 
+```{r}
+counts <- airbnb %>% 
+  count(room_type)
+
+ggplot(data = counts) + 
+  geom_bar(mapping = aes(x = room_type, y = n, fill = n), 
+           stat = "identity", position = "dodge") + 
+  scale_fill_gradient(low = "#005E7D", high = "#FFD662", guide = "legend") + 
+  geom_text(aes(x = room_type, y = n, label = n), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5, size = 4.5) +
+  labs(title = "Distribution Of Room Types In New York City", 
+       x = "Room Type", y = "Count")
+```
+
+## Stacked bar chart showing the distribution of room types by neighbourhood group:
+```{r}
+ggplot(data = airbnb) + 
+  geom_bar(mapping = aes(x = neighbourhood_group, fill = room_type), 
+           position = "stack") +
+  stat_count(mapping = aes(x = neighbourhood_group, label = stat(count)), 
+             geom = "text", position = position_stack(vjust = 0.5), size = 3) +
+  scale_fill_manual(values = c("#FFD700", "#56B4E9", "#7FFFD4")) +
+  labs(title = "Room Type Distribution by Neighbourhood Group", 
+       x = "Neighbourhood Group", y = "Count") +
+  guides(fill = guide_legend(title = "Room Type"))
+```
+
+
+## Scatterplot showing the relationship between price and minimum nights:
+```{r}
+ggplot(data = airbnb) + 
+  geom_point(mapping = aes(x = minimum_nights, y = price, color = neighbourhood_group), alpha = 0.5) + 
+  labs(title = "Price vs. Minimum Nights", x = "Minimum Nights", y = "Price")
+```
+
+## Boxplot showing the distribution of prices by room type:
+```{r}
+ggplot(data = airbnb) + 
+  geom_boxplot(mapping = aes(x = room_type, y = price, fill = room_type)) +
+  scale_fill_manual(values = c("blue", "green", "red")) +
+  labs(title = "Price Distribution by Room Type", x = "Room Type", y = "Price")
+```
+
+## Average Price For Each Room Type
+```{r}
+print("Clean Data Average Price For Each Room Type")
+airbnb_room_mean = aggregate(price ~ room_type, airbnb, mean)
+airbnb_room_mean
+
+airbnb_pie = ggplot(airbnb_room_mean, aes(x= room_type, y= price, fill=room_type)) + geom_bar(stat="identity", width=1) +
+    coord_polar("y", start=0)+scale_fill_brewer(palette="Dark2")+labs(title = "Average Price For Each Room Type", subtitle = "Cleaned Data", fill = "") + geom_text(aes(label = round(price, digits = 1)))
+airbnb_pie
+```
+
+## Density plot showing the distribution of prices:
+```{r}
+
+ggplot(data = airbnb, aes(x = price, fill = room_type)) +
+  geom_density(alpha = 0.5) +
+  scale_fill_manual(values = c("#E69F00", "#56B4E9", "#009E73")) +
+  labs(title = "Price Distribution for all Airbnbs in New York", x = "Price", y = "Density", fill = "Room Type")
+
+ggplot(data = airbnb) + 
+  geom_density(mapping = aes(x = price), fill = "#56B4E9", alpha = 0.5) +
+  labs(title = "Price Distribution", x = "Price", y = "Density")
+
+ggplot(data = subset(airbnb, room_type == "Private room" & neighbourhood_group == "Manhattan")) + 
+  geom_density(mapping = aes(x = price), fill = "#56B4E9", alpha = 0.5) +
+  labs(title = "Price Distribution for Private Rooms in Manhattan", x = "Price", y = "Density")
+
+```
+
+## Mapview: Number Of Reviews Density Using Latitude and Longitude For Specific Room Types As Per Price
+```{r}
+mapview(airbnb_unclean, xcol = "longitude", ycol = "latitude", crs = 4326, grid = FALSE) # coordinate reference system (crs)
+```
+
+```{r}
+qmplot(longitude, latitude, data = airbnb, geom = "point", color = price, main = "Cleaned Data: Density of Latitude and Longitude") + facet_wrap(~ room_type)
+```
+
+# Shiny R Approach
+
+## Scatter Plot
+```{r}
+library(shiny)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+
+ui <- fluidPage(
+  titlePanel("Airbnb Listings in New York City, USA (2011-2019)"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("n", "Number of observations to view:", 
+                  min = 1, max = nrow(airbnb), value = 50)
+    ),
+    mainPanel(
+      plotlyOutput("plot")
+    )
+  )
+)
+
+server <- function(input, output) {
+  output$plot <- renderPlotly({
+    gg <- ggplot(airbnb[1:input$n,], aes(x = minimum_nights, y = price, color = neighbourhood_group, label = name)) +
+      geom_point(alpha = 0.5) +
+      ggtitle("Scatterplot of Price and Minimum Nights") +
+      labs(x = "Minimum Nights", y = "Price") +
+      theme_bw()
+    ggplotly(gg, tooltip = c("name"))
+  })
+}
+
+shinyApp(ui, server)
+
+```
+
+## Boxplot
+```{r}
+library(shiny)
+library(plotly)
+library(dplyr)
+
+ui <- fluidPage(
+  titlePanel("Airbnb Listings in New York City, USA (2011-2019)"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("room_type", "Choose a Room Type:",
+                  choices = c("All", unique(airbnb$room_type))), # added "All" option as default
+      sliderInput("price", "Filter by Price:", 
+                  min = 0, max = max(airbnb$price), value = c(0, max(airbnb$price))),
+      sliderInput("nights", "Filter by Minimum Nights:", 
+                  min = 1, max = 30, value = c(1, max(airbnb$minimum_nights)))
+    ),
+    mainPanel(
+      plotlyOutput("boxplot")
+    )
+  )
+)
+
+server <- function(input, output) {
+  
+  filtered_airbnb <- reactive({
+    if(input$room_type == "All") {
+      airbnb %>%
+        filter(price >= input$price[1] & price <= input$price[2] &
+                 minimum_nights >= input$nights[1] & minimum_nights <= input$nights[2])
+    } else {
+      airbnb %>%
+        filter(room_type == input$room_type & 
+                 price >= input$price[1] & price <= input$price[2] &
+                 minimum_nights >= input$nights[1] & minimum_nights <= input$nights[2])
+    }
+  })
+  
+  output$boxplot <- renderPlotly({
+    p <- ggplot(filtered_airbnb(), aes(x = room_type, y = price, fill = room_type)) +
+      geom_boxplot(alpha = 0.5) +
+      ggtitle(paste0("Boxplot of ", input$room_type, " Room Type and Price")) +
+      xlab("Room Type") + ylab("Price") +
+      theme_minimal()
+    ggplotly(p, tooltip = c("y", "lower", "middle", "upper", "outlier"), 
+              width = 800, height = 500) %>%
+      layout(showlegend = FALSE)
+  })
+  
+}
+
+shinyApp(ui, server)
+```
+
+
+### Stacked bar chart
+```{r}
+library(shiny)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(magrittr)
+
+ui <- fluidPage(
+  titlePanel("Airbnb Listings in New York City, USA (2011-2019)"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("n", "Number of observations to view:", 
+                  min = 1, max = nrow(airbnb), value = 50),
+      checkboxGroupInput("room_type", "Select Room Types to Display:",
+                         choices = unique(airbnb$room_type),
+                         selected = unique(airbnb$room_type)),
+      selectInput("neighbourhood_group", "Select a Neighbourhood Group:",
+                  choices = c("All", unique(airbnb$neighbourhood_group)))
+    ),
+    mainPanel(
+      plotlyOutput("plot")
+    )
+  )
+)
+
+server <- function(input, output) {
+  
+  filtered_airbnb <- reactive({
+    if(input$neighbourhood_group == "All"){
+      airbnb %>%
+        filter(room_type %in% input$room_type) %>%
+        slice(1:input$n)
+    } else {
+      airbnb %>%
+        filter(neighbourhood_group == input$neighbourhood_group &
+                 room_type %in% input$room_type) %>%
+        slice(1:input$n)
+    }
+  })
+  
+  output$plot <- renderPlotly({
+    filtered_airbnb() %>%
+      ggplot(aes(x = neighbourhood, fill = room_type)) +
+      geom_bar() +
+      labs(title = "Stacked Bar chart of Neighbourhood and Room Type") +
+      theme(plot.title = element_text(size = 20)) +
+      scale_fill_brewer(palette = "Set1") +
+      theme(legend.title = element_blank(),
+            legend.position = "bottom",
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) -> p
+      
+    ggplotly(airbnb = p %+% airbnb.frame(neighbourhood = filtered_airbnb()$neighbourhood), 
+             tooltip = c("room_type", "count")) %>%
+      layout(hovermode = "closest",
+             hoverlabel = list(bgcolor = "white", 
+                               font = list(family = "Roboto", size = 14),
+                               align = "left"),
+             xaxis = list(title = "Neighbourhood", tickfont = list(size = 12)),
+             yaxis = list(title = "Count", tickfont = list(size = 12)))
+  })
+}
+
+shinyApp(ui, server)
+```
+
+## Histogram plot
+```{r}
+library(shiny)
+library(plotly)
+
+# Define colors for each room_type
+colors <- c("#7fc97f", "#beaed4", "#fdc086", "#ffff99")
+
+ui <- fluidPage(
+  titlePanel("Price Distribution of Airbnb Listings in New York City"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("price_range", "Price Range:", 
+                  min = 0, max = 1000, value = c(0, 500)),
+      br(),
+      checkboxGroupInput("room_type", "Select Room Types to Display:",
+                         choices = unique(airbnb$room_type),
+                         selected = unique(airbnb$room_type)),
+      br(),
+      selectInput("neighbourhood_group", "Select a Neighbourhood Group:",
+                  choices = c("All", sort(unique(airbnb$neighbourhood_group)))),
+      br(),
+      selectInput("minimum_nights", "Minimum Nights:",
+            choices = c("All", 1:30),
+            selected = "All"),
+      br(),
+      selectInput("availability_365", "Availability 365:",
+                  choices = c("All", sort(unique(airbnb$availability_365))))
+    ),
+    mainPanel(
+      plotlyOutput("plot")
+    )
+  )
+)
+
+
+server <- function(input, output) {
+  
+  filtered_airbnb <- reactive({
+    # Map each room_type to a color
+    colors_map <- setNames(colors, unique(airbnb$room_type))
+    
+    airbnb %>%
+      filter(price >= input$price_range[1] & price <= input$price_range[2],
+             room_type %in% input$room_type,
+             if(input$neighbourhood_group == "All") TRUE else neighbourhood_group == input$neighbourhood_group,
+             if(input$minimum_nights == "All") TRUE else minimum_nights == as.numeric(input$minimum_nights),
+             if(input$availability_365 == "All") TRUE else availability_365 == as.numeric(input$availability_365)
+             ) %>%
+      # Add a new column "color" based on room_type
+      mutate(color = colors_map[room_type])
+  })
+  
+  output$plot <- renderPlotly({
+    filtered_airbnb() %>%
+      plot_ly(x = ~price, type = "histogram",
+              marker = list(color = ~color, 
+                            line = list(color = "white", width = 0.5)),
+              hovertemplate = paste(
+                "<b>Price:</b> %{x:.0f}<br>",
+                "<b>Count:</b> %{y:.0f}<br>",
+                "<b>Room Type:</b> %{marker.color}"
+              ),
+              showlegend = FALSE
+              ) %>%
+      layout(xaxis = list(title = "Price"),
+             yaxis = list(title = "Count"),
+             hovermode = "closest",
+             hoverlabel = list(bgcolor = "white", 
+                               font = list(family = "Roboto", size = 14),
+                               align = "left"),
+             colorway = colors,
+             margin = list(l = 40, r = 40, t = 40, b = 40))
+  })
+}
+
+shinyApp(ui, server)
+
+```
+
+## Mapview
+```{r}
+library(leaflet)
+
+ui <- fluidPage(
+  titlePanel("Airbnb Listings in New York City"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("price_slider", "Filter by Price", min = 0, max = 1000, value = c(0, 500)),
+      sliderInput("min_nights_slider", "Filter by Minimum Nights", min = 1, max = 30, value = c(1, 7))
+    ),
+    mainPanel(
+      leafletOutput("map")
+    )
+  )
+)
+
+server <- function(input, output) {
+  
+  filtered_airbnb <- reactive({
+    airbnb %>%
+      filter(price >= input$price_slider[1] & price <= input$price_slider[2] & minimum_nights >= input$min_nights_slider[1] & minimum_nights <= input$min_nights_slider[2])
+  })
+  
+  output$map <- renderLeaflet({
+    pal <- colorFactor(palette = "Dark2", domain = filtered_airbnb()$room_type)
+    leaflet(filtered_airbnb()) %>%
+      addTiles() %>%
+      setView(lng = -73.987056, lat = 40.727248, zoom = 11) %>%
+      addProviderTiles("CartoDB.Positron") %>%
+      addCircleMarkers(lng = ~longitude, lat = ~latitude, radius = 5, 
+                       color = ~pal(room_type), fillOpacity = 0.8, stroke = FALSE,
+                       popup = ~paste("<b>Name:</b> ", name, "<br>",
+                                      "<b>Room Type:</b> ", room_type, "<br>",
+                                      "<b>Price:</b> $", price, "/night"))
+  })
+}
+
+shinyApp(ui, server)
+
+```
+
+
+
+

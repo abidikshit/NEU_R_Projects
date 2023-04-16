@@ -5,7 +5,7 @@
 ## Project Details
 - [Airbnb New York Analysis (2011 - 2019): Data Analysis On Hospitality Industry](ALY6000/FinalProject/Dikshit_FinalProject.pptx)
 
-- [Capstone Report on Airbnb Data Analysis in NYC, NY, USA (2011 - 2019)](ALY6010/FinalProject/Capstone_ALY_6010_Abhilash_Dikshit.docx)
+- [Capstone Report on Airbnb Data Analysis in NYC, NY, USA (2011 - 2019)](ALY6010/FinalProject/FinalProject/Capstone_ALY_6010_Abhilash_Dikshit.docx)
 
 - [Communication and Visualization using R, ShinyR and Tableau on Airbnb New York Analysis (2011 -2019)](ALY6070/FinalProject/ALY6070_G7_FinalProject.pdf)
 

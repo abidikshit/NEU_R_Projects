@@ -13,7 +13,6 @@
 
 <p>Churn modelling: The computations for churn are based on pre-existing data, which involves calculating the number of customers who terminated their engagement with a service within a specific timeframe.</p>
 
-
 ### References:
 - [Doc](/Documents/)
 

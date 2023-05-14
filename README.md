@@ -17,9 +17,6 @@ Churn modelling: The computations for churn are based on pre-existing data, whic
 ### References:
 - [Doc](/Documents/)
 
-### Data:
-- [Data sets](Data)
-
 ### Subjects:
 - [ALY6000- Introduction to Analytics](ALY6000)
 - [ALY6010- Probability Theory and Introductory Statistics](ALY6010)

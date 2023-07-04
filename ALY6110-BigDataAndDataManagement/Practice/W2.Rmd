@@ -1,0 +1,71 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages('rlang')
+```
+
+```{r}
+install.packages('arules')
+```
+
+```{r}
+install.packages('arulesViz')
+```
+
+```{r}
+install.packages('devtools')
+```
+
+
+```{r}
+library(rlang)
+library(arules)
+library(arulesViz)
+library(devtools)
+```
+```{r}
+data("Groceries")
+Groceries
+```
+
+```{r}
+summary(Groceries)
+```
+
+```{r}
+class(Groceries)
+```
+
+```{r}
+Groceries@itemInfo
+```
+
+```{r}
+apply(Groceries@data[,1:10], 2, 
+      function(r) paste (Groceries@itemInfo[r,"labels"],collapse = ", "))
+```
+
+```{r}
+itemsets= apriori(Groceries, parameter = list(minlen=1, maxlen=1, support=0.02, target="frequent itemsets"))
+```
+
+
+```{r}
+summary(itemsets)
+```
+
+```{r}
+inspect(head(sort(itemsets, by="support", 10)))
+```
+
+```{r}
+itemsets= apriori(Groceries, parameter = list(minlen=2, maxlen=2, support=0.02, target="frequent itemsets"))
+```
+
+```{r}
+
+```
+

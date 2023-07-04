@@ -1,0 +1,154 @@
+```{r}
+install.packages("ggplot2")
+install.packages("corrr")
+install.packages("dbplot")
+install.packages("rmarkdown")
+```
+
+```{r}
+library(sparklyr)
+```
+
+```{r}
+packageVersion("sparklyr")
+```
+
+```{r}
+cars= copy_to(sc, mtcars)
+```
+
+```{r}
+summarize_all(cars, mean)
+```
+
+```{r}
+summarize_all(cars, mean) %>%
+  show_query()
+```
+
+```{r}
+cars %>%
+  mutate(transmission = ifelse(am== 0, "automatic", "manual")) %>%
+  group_by(transmission) %>%
+  summarize_all(mean)
+```
+
+```{r}
+ml_corr(cars)
+```
+
+```{r}
+library(corrr)
+```
+
+```{r}
+correlate(cars, use= "pairwise.complete.obs", method = "pearson") %>%
+  shave() %>%
+  rplot()
+```
+
+```{r}
+cars %>%
+  ml_linear_regression(mpg ~ .) %>%
+  summary()
+```
+
+```{r}
+cars %>%
+  ml_linear_regression(mpg ~ hp+cyl) %>%
+  summary()
+```
+```{r}
+cached_cars= cars %>%
+  mutate(cyl= paste0("cyl_", cyl)) %>%
+  compute()
+```
+
+```{r}
+download.file("https://github.com/r-spark/okcupid/raw/master/profiles.csv.zip",
+              "okcupid.zip")
+
+unzip("okcupid.zip", exdir = "data")
+unlink("okcupid.zip")
+```
+
+```{r}
+library(sparklyr)
+library(ggplot2)
+library(dbplot)
+library(dplyr)
+```
+
+```{r}
+
+```
+
+```{r}
+sc= spark_connect(master = "local")
+```
+
+```{r}
+profiles= read.csv("data/profiles.csv")
+write.csv(dplyr::sample_n(profiles,10^3),
+          "data/profiles.csv", row.names = F)
+
+```
+
+```{r}
+okc= spark_read_csv(
+  sc, "data/profiles.csv",
+  escape="\"",
+  memory = F,
+  options = list(multiline=T)
+) %>%
+  mutate(
+    height= as.numeric(height),
+    income= ifelse(income=="-1", NA, as.numeric(income))
+  ) %>%
+  mutate(sex= ifelse(is.na(sex), "missing", sex)) %>%
+  mutate(drinks= ifelse(is.na(drinks), "missing", drinks)) %>%
+  mutate(drugs= ifelse(is.na(drugs), "missing", drugs)) %>%
+  mutate(job= ifelse(is.na(job), "missing", job))
+```
+
+```{r}
+glimpse(okc)
+```
+
+```{r}
+okc= okc %>%
+  mutate(
+    not_working= ifelse(job %in% c("student", "unemployed", "retired"), 1,0)
+  )
+```
+
+```{r}
+okc %>%
+  group_by(not_working) %>%
+  tally()
+```
+
+```{r}
+data_splits= sdf_random_split(okc, training= 0.8, test=0.2, seed= 42)
+okc_train=data_splits$training
+okc_test= data_splits$test
+```
+
+```{r}
+okc_train %>%
+  group_by(not_working) %>%
+  tally() %>%
+  mutate(frac= n/ sum(n))
+```
+
+```{r}
+sdf_describe(okc_train, cols = c("age","income"))
+```
+
+```{r}
+dbplot_histogram(okc_train, age)
+```
+
+```{r}
+dbplot_histogram(okc_train, income)
+```

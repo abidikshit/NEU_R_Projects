@@ -1,0 +1,140 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages("sparklyr")
+```
+
+```{r}
+library(sparklyr)
+```
+
+```{r}
+packageVersion("sparklyr")
+```
+
+```{r}
+spark_available_versions()
+
+```
+
+```{r}
+spark_install("3.2")
+```
+
+```{r}
+spark_installed_versions()
+```
+
+
+```{r}
+system("java -version")
+```
+
+```{r}
+sc = spark_connect(master = "local", version = "3.2")
+```
+
+```{r}
+cars= copy_to(sc, mtcars)
+cars
+```
+
+```{r}
+spark_web(sc)
+```
+
+```{r}
+install.packages("DBI")
+```
+
+```{r}
+library(DBI)
+```
+
+```{r}
+dbGetQuery(sc, "select count(*) from mtcars")
+```
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+count(mtcars)
+```
+
+```{r}
+select(cars, hp, mpg) %>% 
+  sample_n(100) %>%
+  collect() %>%
+  plot()
+```
+
+```{r}
+model= ml_linear_regression(cars, mpg~hp)
+model
+```
+
+```{r}
+model %>% 
+  ml_predict(copy_to(sc, data.frame(hp= 250+10 * 1:10))) %>%
+  transmute(hp= hp, mpg= prediction) %>%
+  full_join(select(cars, hp, mpg)) %>%
+  collect() %>%
+  plot()
+```
+
+```{r}
+spark_write_csv(cars, "cars.csv")
+```
+
+```{r}
+install.packages("sparklyr.nested")
+```
+
+```{r}
+library(sparklyr.nested)
+```
+
+```{r}
+sparklyr.nested::sdf_nest(cars, hp) %>%
+  group_by(cyl) %>%
+  summarise(data= collect_list(data))
+
+```
+
+```{r}
+dir.create("input")
+write.csv(mtcars, "input/cars_1.csv", row.names = F)
+```
+
+```{r}
+stream= stream_read_csv(sc, "input/") %>%
+  select(mpg, cyl, disp) %>%
+  stream_write_csv("output/")
+```
+
+```{r}
+dir("output", pattern = ".csv")
+```
+
+```{r}
+write.csv(mtcars, "input/cars_2.csv", row.names = F)
+```
+
+```{r}
+dir("output", pattern = ".csv")
+```
+
+```{r}
+stream_stop(stream)
+```
+
+```{r}
+spark_log(sc, filter = "sparklyr")
+```
+
+
